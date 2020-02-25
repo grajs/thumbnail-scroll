@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>Title</title>
+  <style>
+    body {
+      margin: 0;
+    }
+
+    .item {
+      display: inline-block;
+      margin-bottom: 100px;
+    }
+
+    span {
+      display: inline-block;
+      cursor: pointer;
+      font-size: 30px;
+      text-align: center;
+      /*flex-basis: 400px;*/
+      width: 400px;
+      margin-right: 100px;
+      height: 500px;
+      background-color: beige;
+    }
+
+    .last {
+      margin-bottom: 0;
+    }
+
+    .scroll {
+      position: fixed;
+      right: 10px;
+      bottom: 10px;
+      border: solid 1px #409EFF;
+      z-index: 1;
+      background-color: white;
+    }
+
+    section {
+      display: inline-block;
+    }
+  </style>
+</head>
+<body>
+<section class="target">
+  <div class="item" style="white-space: nowrap;">
+    <span class="skeleton-item" style="white-space: pre-wrap">1
+    er
+    tre
+    te</span>
+    <span class="skeleton-item">2</span>
+    <span class="skeleton-item">2</span>
+    <span class="skeleton-item">2</span>
+    <span class="skeleton-item">2</span>
+    <span class="skeleton-item">2</span>
+  </div>
+  <div class="item" style="display: block">
+    <span class="skeleton-item">3</span>
+    <span class="skeleton-item">4</span>
+  </div>
+  <div class="item" style="display: block">
+    <span class="skeleton-item">13</span>
+    <span class="skeleton-item">14</span>
+  </div>
+  <div class="item" style="display: block">
+    <span class="skeleton-item">15</span>
+    <span class="skeleton-item">16</span>
+  </div>
+  <div class="item" style="display: block">
+    <span class="skeleton-item">3</span>
+    <span class="skeleton-item">4</span>
+  </div>
+  <div class="item" style="display: block">
+    <span class="skeleton-item">13</span>
+    <span class="skeleton-item">14</span>
+  </div>
+  <div class="item" style="display: block">
+    <span class="skeleton-item">15</span>
+    <span class="skeleton-item">16</span>
+  </div>
+  <div class="item">
+    <span class="skeleton-item">5</span>
+    <span class="skeleton-item">6</span>
+  </div>
+  <div class="item last" style="display: block">
+    <span class="skeleton-item">7</span>
+    <span class="skeleton-item">8</span>
+  </div>
+</section>
+</body>
+</html>

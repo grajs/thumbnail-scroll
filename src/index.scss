@@ -1,0 +1,32 @@
+.thumbnail-scroll-container {
+  overflow: hidden;
+  cursor: crosshair;
+  user-select: none;
+
+  * {
+    box-sizing: border-box;
+  }
+
+  .thumbnail-scroll-rect {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 1;
+    border: solid 1px red;
+    cursor: move;
+  }
+
+  .thumbnail-scroll-content {
+    pointer-events: none;
+    transform-origin: 0 0 0;
+
+    &.is-skeleton {
+      position: relative;
+    }
+  }
+
+  .skeleton-item {
+    position: absolute;
+    background-color: #ffddaa;
+  }
+}
