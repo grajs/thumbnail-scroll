@@ -137,6 +137,52 @@ export default class thumbnailScroll {
     this.boundaryScrollInterval = null
   }
 
+  setBoundaryData() {
+    const { size } = this.option
+    const activeRect = this.activeRect
+    const { width: contentWidth, height: contentHeight } = this.contentElement.getBoundingClientRect()
+    const { width: rectWidth, height: rectHeight } = activeRect.getBoundingClientRect()
+    const rectStyle = getComputedStyle(activeRect)
+    const rectLeft = getValuePx(rectStyle.left)
+    const rectTop = getValuePx(rectStyle.top)
+    this.boundaryData = {
+      left: rectLeft === 0 && this.contentTranslateX < 0 && this.rectMoveData.left,
+      right: Math.abs(rectLeft - (size - rectWidth)) < 1 && this.contentTranslateX * this.scale > size - contentWidth && this.rectMoveData.right,
+      top: rectTop === 0 && this.contentTranslateY < 0 && this.rectMoveData.top,
+      bottom: Math.abs(rectTop - (size - rectHeight)) < 1 && this.contentTranslateY * this.scale > size - contentHeight && this.rectMoveData.bottom
+    }
+  }
+
+  syncScroll() {
+    const { left: rectLeft, top: rectTop } = getComputedStyle(this.activeRect)
+    this.realScrollLayer.scrollLeft = -this.contentTranslateX + getValuePx(rectLeft) / this.scale
+    this.realScrollLayer.scrollTop = -this.contentTranslateY + getValuePx(rectTop) / this.scale
+  }
+
+  // 偏移一定距离后是否会超出边界
+  allowMove(direct, offsetValue) {
+    const { size } = this.option
+    const { width: contentWidth, height: contentHeight } = this.contentElement.getBoundingClientRect()
+    // 往左偏移
+    if (direct === 'left') {
+      const maxLeft = (contentWidth - size) / this.scale
+      return -this.contentTranslateX + offsetValue < maxLeft
+    }
+    // 往右偏移
+    if (direct === 'right') {
+      return -this.contentTranslateX > offsetValue
+    }
+    // 往上偏移
+    if (direct === 'up') {
+      const maxHeight = (contentHeight - size) / this.scale
+      return -this.contentTranslateY + offsetValue < maxHeight
+    }
+    // 往下偏移
+    if (direct === 'down') {
+      return -this.contentTranslateY > offsetValue
+    }
+  }
+
   boundaryScroll() {
     const { size } = this.option
     const { width: contentWidth, height: contentHeight } = this.contentElement.getBoundingClientRect()
@@ -181,28 +227,6 @@ export default class thumbnailScroll {
     } else {
       this.stopBoundaryScroll()
     }
-  }
-
-  setBoundaryData() {
-    const { size } = this.option
-    const activeRect = this.activeRect
-    const { width: contentWidth, height: contentHeight } = this.contentElement.getBoundingClientRect()
-    const { width: rectWidth, height: rectHeight } = activeRect.getBoundingClientRect()
-    const rectStyle = getComputedStyle(activeRect)
-    const rectLeft = getValuePx(rectStyle.left)
-    const rectTop = getValuePx(rectStyle.top)
-    this.boundaryData = {
-      left: rectLeft === 0 && this.contentTranslateX < 0 && this.rectMoveData.left,
-      right: Math.abs(rectLeft - (size - rectWidth)) < 1 && this.contentTranslateX * this.scale > size - contentWidth && this.rectMoveData.right,
-      top: rectTop === 0 && this.contentTranslateY < 0 && this.rectMoveData.top,
-      bottom: Math.abs(rectTop - (size - rectHeight)) < 1 && this.contentTranslateY * this.scale > size - contentHeight && this.rectMoveData.bottom
-    }
-  }
-
-  syncScroll() {
-    const { left: rectLeft, top: rectTop } = getComputedStyle(this.activeRect)
-    this.realScrollLayer.scrollLeft = -this.contentTranslateX + getValuePx(rectLeft) / this.scale
-    this.realScrollLayer.scrollTop = -this.contentTranslateY + getValuePx(rectTop) / this.scale
   }
 
   setRectEvent() {
@@ -262,30 +286,6 @@ export default class thumbnailScroll {
     })
   }
 
-  // 偏移一定距离后是否会超出边界
-  allowMove(direct, offsetValue) {
-    const { size } = this.option
-    const { width: contentWidth, height: contentHeight } = this.contentElement.getBoundingClientRect()
-    // 往左偏移
-    if (direct === 'left') {
-      const maxLeft = (contentWidth - size) / this.scale
-      return -this.contentTranslateX + offsetValue > maxLeft
-    }
-    // 往右偏移
-    if (direct === 'right') {
-      return -this.contentTranslateX > offsetValue
-    }
-    // 往上偏移
-    if (direct === 'top') {
-      const maxHeight = (contentHeight - size) / this.scale
-      return -this.contentTranslateY + offsetValue > maxHeight
-    }
-    // 往下偏移
-    if (direct === 'bottom') {
-      return -this.contentTranslateX > offsetValue
-    }
-  }
-
   setScrollEvent() {
     const { scrollLayer, size } = this.option
     const realScrollLayer = this.realScrollLayer
@@ -307,7 +307,7 @@ export default class thumbnailScroll {
 
       // 往右滚动
       if (offsetScrollLeft > 0) {
-        if (this.contentTranslateX - offsetScrollLeft > -maxLeft) {
+        if (this.allowMove('left', offsetScrollLeft)) {
           this.contentTranslateX = this.contentTranslateX - offsetScrollLeft
         } else {
           const surplusX = maxLeft + this.contentTranslateX
@@ -315,18 +315,18 @@ export default class thumbnailScroll {
           activeRect.style.left = `${getValuePx(activeRect.style.left) + (offsetScrollLeft - surplusX) * this.scale}px`
         }
       }
-      // 往左滚动
+      // 内容区往右偏移
       if (offsetScrollLeft < 0) {
-        if (this.contentTranslateX < offsetScrollLeft) {
+        if (this.allowMove('right', Math.abs(offsetScrollLeft))) {
           this.contentTranslateX = this.contentTranslateX - offsetScrollLeft
         } else {
           activeRect.style.left = `${getValuePx(activeRect.style.left) + (offsetScrollLeft - this.contentTranslateX) * this.scale}px`
           this.contentTranslateX = 0
         }
       }
-      // 往下滚动
+      // 内容区向上偏移
       if (offsetScrollTop > 0) {
-        if (this.contentTranslateY - offsetScrollTop > -maxHeight) {
+        if (this.allowMove('up', offsetScrollTop)) {
           this.contentTranslateY = this.contentTranslateY - offsetScrollTop
         } else {
           const surplusY = maxHeight + this.contentTranslateY
@@ -334,9 +334,9 @@ export default class thumbnailScroll {
           activeRect.style.top = `${getValuePx(activeRect.style.top) + (offsetScrollTop - surplusY) * this.scale}px`
         }
       }
-      // 往上滚动
+      // 内容区向下偏移
       if (offsetScrollTop < 0) {
-        if (this.contentTranslateY < offsetScrollTop) {
+        if (this.allowMove('down', Math.abs(offsetScrollTop))) {
           this.contentTranslateY = this.contentTranslateY - offsetScrollTop
         } else {
           activeRect.style.top = `${getValuePx(activeRect.style.top) + (offsetScrollTop - this.contentTranslateY) * this.scale}px`
@@ -351,25 +351,41 @@ export default class thumbnailScroll {
   }
 
   setDragMoveEvent() {
-    const activeRect = this.activeRect
+    const contentElement = this.contentElement
     let rootDragging = false
     let oldClientX = 0
     let oldClientY = 0
     this.root.addEventListener('mousedown', e => {
-      if (e.target !== this.root) return
+      if (e.target !== this.root || e.button) return
       oldClientX = e.clientX
       oldClientY = e.clientY
       rootDragging = true
+      this.scrollLock = true
     })
     this.root.addEventListener('mousemove', e => {
-      if (!rootDragging) return
+      if (!rootDragging || e.button) return
+
       const offsetX = e.clientX - oldClientX
-      activeRect.style.left = `${getValuePx(activeRect.style.left) + offsetX}px`
+      let allowMoveX = false
+      if (offsetX > 0 && this.allowMove('right', offsetX)) allowMoveX = true
+      if (offsetX < 0 && this.allowMove('left', Math.abs(offsetX))) allowMoveX = true
+      if (allowMoveX) this.contentTranslateX = this.contentTranslateX + offsetX / this.scale
+
+      const offsetY = e.clientY - oldClientY
+      let allowMoveY = false
+      if (offsetY > 0 && this.allowMove('down', offsetY)) allowMoveY = true
+      if (offsetY < 0 && this.allowMove('up', Math.abs(offsetY))) allowMoveY = true
+      if (allowMoveY) this.contentTranslateY = this.contentTranslateY + offsetY / this.scale
+
+      contentElement.style.transform = `scale(${this.scale}) translate(${this.contentTranslateX}px, ${this.contentTranslateY}px)`
       oldClientX = e.clientX
       oldClientY = e.clientY
     })
     window.addEventListener('mouseup', e => {
+      if (e.button) return
       rootDragging = false
+      this.syncScroll()
+      setTimeout(() => this.scrollLock = false, 100)
     })
   }
 
