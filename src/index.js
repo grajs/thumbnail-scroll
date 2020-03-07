@@ -229,6 +229,7 @@ export default class thumbnailScroll {
     }
   }
 
+  // 拖动活动块
   setRectEvent() {
     const activeRect = this.activeRect
     let rectDragging = false
@@ -245,7 +246,6 @@ export default class thumbnailScroll {
       oldClientX = e.clientX
       oldClientY = e.clientY
       rectDragging = true
-      this.scrollLock = true
     })
     this.root.addEventListener('mousemove', e => {
       if (!rectDragging || e.button) return
@@ -279,10 +279,10 @@ export default class thumbnailScroll {
       if (e.button) return
       if (rectDragging) {
         this.stopBoundaryScroll()
+        this.scrollLock = true
         this.syncScroll()
+        rectDragging = false
       }
-      rectDragging = false
-      setTimeout(() => this.scrollLock = false, 100)
     })
   }
 
@@ -298,6 +298,7 @@ export default class thumbnailScroll {
       if (this.scrollLock) {
         oldScrollLeft = realScrollLayer.scrollLeft
         oldScrollTop = realScrollLayer.scrollTop
+        this.scrollLock = false
         return
       }
       const maxLeft = (contentWidth - size) / this.scale
@@ -350,6 +351,7 @@ export default class thumbnailScroll {
     })
   }
 
+  // 拖拽非活动块
   setDragMoveEvent() {
     const contentElement = this.contentElement
     let rootDragging = false
@@ -360,7 +362,6 @@ export default class thumbnailScroll {
       oldClientX = e.clientX
       oldClientY = e.clientY
       rootDragging = true
-      this.scrollLock = true
     })
     this.root.addEventListener('mousemove', e => {
       if (!rootDragging || e.button) return
@@ -383,16 +384,18 @@ export default class thumbnailScroll {
     })
     window.addEventListener('mouseup', e => {
       if (e.button) return
-      rootDragging = false
-      this.syncScroll()
-      setTimeout(() => this.scrollLock = false, 100)
+      if (rootDragging) {
+        rootDragging = false
+        this.scrollLock = true
+        this.syncScroll()
+      }
     })
   }
 
   setEvent() {
     this.scrollLock = false
     this.setRectEvent()
-    this.setScrollEvent()
     this.setDragMoveEvent()
+    this.setScrollEvent()
   }
 }
