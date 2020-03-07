@@ -121,7 +121,7 @@ export default class thumbnailScroll {
     target.querySelectorAll(`.${skeletonClassName}`).forEach(item => {
       const { width: itemWidth, height: itemHeight, x: itemLeft, y: itemTop } = item.getBoundingClientRect()
       const skeletonItem = document.createElement('div')
-      skeletonItem.classList.add('skeleton-item')
+      skeletonItem.classList.add('thumbnail-skeleton-item')
       const skeletonItemStyle = skeletonItem.style
       skeletonItemStyle.width = `${itemWidth}px`
       skeletonItemStyle.height = `${itemHeight}px`
