@@ -4,73 +4,107 @@ const getValuePx = value => +value.replace(/px$/, '')
 
 export default class thumbnailScroll {
   constructor(option) {
-    if (option.target && option.target.nodeType === 1) {
-      this.option = Object.assign({
-        insertContainer: document.body,
-        scrollLayer: window,
-        // skeleton || dom || image
-        mode: 'dom',
-        className: '',
-        resize: false,
-        size: 200,
-        skeletonClassName: ''
-      }, option)
-      this.init()
-    } else {
-      throw `"option.target" should be a element`
+    if (!option.target || option.target.nodeType !== 1) {
+      throw '"option.target" should be a element'
+      return
     }
+    this.mergeOption(option)
+    this.init()
+  }
+
+  mergeOption(optionData) {
+    const option = Object.assign({
+      parentElement: document.body,
+      // skeleton || image
+      mode: 'dom',
+      size: 200,
+      width: 200,
+      height: 200,
+      skeletonClassName: ''
+    }, optionData)
+
+    let {
+      target,
+      scrollLayer,
+      scrollXLayer,
+      scrollYLayer,
+      scale,
+      fullOrientation,
+      width,
+      height
+    } = option
+
+    if (scrollLayer) option.scrollXLayer = option.scrollYLayer = scrollLayer
+    if (!scrollXLayer || scrollXLayer === window) option.scrollXLayer = document.documentElement
+    if (!scrollYLayer || scrollYLayer === window) option.scrollYLayer = document.documentElement
+
+    // 设置比例
+    if (scale) {
+      this.scale = scale
+    } else {
+      const { width: targetWidth, height: targetHeight } = target.getBoundingClientRect()
+      if (!/^width|height$/.test(fullOrientation)) {
+        fullOrientation = targetWidth > targetHeight ? 'height' : 'width'
+      }
+      this.scale = fullOrientation === 'width' ? width / targetWidth : height / targetHeight
+    }
+    this.option = option
+    this.target = option.target
   }
 
   init() {
-    const { target, mode, skeletonClassName, size } = this.option
+    const { target } = this.option
     const { width: targetWidth, height: targetHeight, x: targetLeft, y: targetTop } = target.getBoundingClientRect()
     this.targetWidth = targetWidth
     this.targetHeight = targetHeight
     this.targetLeft = targetLeft
     this.targetTop = targetTop
-    this.fullDirectionX = targetHeight > targetWidth
-    this.scale = size / (this.fullDirectionX ? targetWidth : targetHeight)
     this.contentTranslateX = 0
     this.contentTranslateY = 0
     this.boundaryScrollInterval = null
-    this.realScrollLayer = this.option.scrollLayer === window ? document.documentElement : this.option.scrollLayer
-    this.createRoot()
-    if (mode === 'dom') {
-      this.createCopyElement()
-    }
+    this.createMap()
+    this.createActiveRect()
+    // this.setEvent()
+  }
+
+  createMap() {
+    const { mode, skeletonClassName, width, height, parentElement } = this.option
+    const rootElement = document.createElement('div')
+    rootElement.classList.add('thumbnail-scroll')
+    rootElement.style.width = `${width}px`
+    rootElement.style.height = `${height}px`
+    parentElement && parentElement.appendChild(rootElement)
+    this.el = rootElement
+
     if (mode === 'skeleton') {
-      if (skeletonClassName && typeof skeletonClassName === 'string') {
-        this.createSkeleton()
-      } else {
-        throw `"option.skeletonClassName" should be a String`
+      if (typeof skeletonClassName !== 'string') {
+        throw '"option.skeletonClassName" should be a String'
+        return
       }
+      this.createSkeleton()
     }
-    this.createActiveRectangle()
-    this.setEvent()
   }
 
-  createRoot() {
-    const { className, size, insertContainer } = this.option
-    const root = document.createElement('div')
-    root.classList.add('thumbnail-scroll-container')
-    if (className && typeof className === 'string') root.classList.add(className)
-    if (size) root.style.height = root.style.width = `${size}px`
-    insertContainer.appendChild(root)
-    this.root = root
-  }
+  createActiveRect() {
+    const { scrollXLayer, scrollYLayer } = this.option
+    const scale = this.scale
 
-  createActiveRectangle() {
     const activeRect = document.createElement('div')
     activeRect.classList.add('thumbnail-scroll-rect')
-    this.root.appendChild(activeRect)
     this.activeRect = activeRect
-    this.refreshRect()
+    this.el.appendChild(activeRect)
+
+    const activeRectStyle = this.activeRect.style
+    activeRectStyle.width = `${scrollXLayer.clientWidth * scale}px`
+    activeRectStyle.height = `${scrollYLayer.clientHeight * scale}px`
+    activeRectStyle.left = `${scrollXLayer.scrollLeft * scale}px`
+    activeRectStyle.top = `${scrollYLayer.scrollTop * scale}px`
   }
 
   refreshRect() {
     const { size } = this.option
     const scale = this.scale
-    const realScrollLayer = this.realScrollLayer
+    const realScrollLayer = this.option.scrollXLayer
     const rectWidth = realScrollLayer.clientWidth * scale
     const rectHeight = realScrollLayer.clientHeight * scale
     const rectLeft = realScrollLayer.scrollLeft * scale
@@ -93,40 +127,29 @@ export default class thumbnailScroll {
     this.contentElement.style.transform = `scale(${this.scale}) translate(${this.contentTranslateX}px, ${this.contentTranslateY}px)`
   }
 
-  createCopyElement() {
-    const { target } = this.option
-    const content = target.cloneNode(true)
-    content.classList.add('thumbnail-scroll-content')
-    content.style.width = `${this.targetWidth}px`
-    content.style.height = `${this.targetHeight}px`
-    content.style.transform = `scale(${this.scale}) translate(0, 0)`
-    this.root.appendChild(content)
-    this.contentElement = content
-  }
-
   createSkeleton() {
+    const { width: targetWidth, height: targetHeight } = this.target.getBoundingClientRect()
     const content = document.createElement('div')
     content.classList.add('thumbnail-scroll-content', 'is-skeleton')
-    content.style.width = `${this.targetWidth}px`
-    content.style.height = `${this.targetHeight}px`
-    content.style.transform = `scale(${this.scale}) translate(0, 0)`
-    this.root.appendChild(content)
+    content.style.width = `${targetWidth * this.scale}px`
+    content.style.height = `${targetHeight * this.scale}px`
+    this.el.appendChild(content)
     this.contentElement = content
-    this.refreshSkeleton()
+    this.createSkeletonContent()
   }
 
-  refreshSkeleton(init) {
-    if (init) this.contentElement.innerHTML = ''
+  createSkeletonContent() {
     const { target, skeletonClassName } = this.option
+    const scale = this.scale
     target.querySelectorAll(`.${skeletonClassName}`).forEach(item => {
       const { width: itemWidth, height: itemHeight, x: itemLeft, y: itemTop } = item.getBoundingClientRect()
       const skeletonItem = document.createElement('div')
       skeletonItem.classList.add('thumbnail-skeleton-item')
       const skeletonItemStyle = skeletonItem.style
-      skeletonItemStyle.width = `${itemWidth}px`
-      skeletonItemStyle.height = `${itemHeight}px`
-      skeletonItemStyle.left = `${itemLeft - this.targetLeft}px`
-      skeletonItemStyle.top = `${itemTop - this.targetTop}px`
+      skeletonItemStyle.width = `${itemWidth * scale}px`
+      skeletonItemStyle.height = `${itemHeight * scale}px`
+      skeletonItemStyle.left = `${(itemLeft - this.targetLeft) * scale}px`
+      skeletonItemStyle.top = `${(itemTop - this.targetTop) * scale}px`
       this.contentElement.appendChild(skeletonItem)
     })
   }
@@ -247,7 +270,7 @@ export default class thumbnailScroll {
       oldClientY = e.clientY
       rectDragging = true
     })
-    this.root.addEventListener('mousemove', e => {
+    this.el.addEventListener('mousemove', e => {
       if (!rectDragging || e.button) return
       const offsetX = e.clientX - oldClientX
       const offsetY = e.clientY - oldClientY
@@ -357,13 +380,13 @@ export default class thumbnailScroll {
     let rootDragging = false
     let oldClientX = 0
     let oldClientY = 0
-    this.root.addEventListener('mousedown', e => {
-      if (e.target !== this.root || e.button) return
+    this.el.addEventListener('mousedown', e => {
+      if (e.target !== this.el || e.button) return
       oldClientX = e.clientX
       oldClientY = e.clientY
       rootDragging = true
     })
-    this.root.addEventListener('mousemove', e => {
+    this.el.addEventListener('mousemove', e => {
       if (!rootDragging || e.button) return
 
       const offsetX = e.clientX - oldClientX
