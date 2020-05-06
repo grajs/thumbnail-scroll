@@ -59,12 +59,10 @@ export default class thumbnailScroll {
     this.targetHeight = targetHeight
     this.targetLeft = targetLeft
     this.targetTop = targetTop
-    this.contentTranslateX = 0
-    this.contentTranslateY = 0
     this.boundaryScrollInterval = null
     this.createMap()
     this.createActiveRect()
-    // this.setEvent()
+    this.setEvent()
   }
 
   createMap() {
@@ -116,15 +114,15 @@ export default class thumbnailScroll {
     activeRectStyle.top = `${rectTop}px`
     // 判断缩略图能否上下移动
     if (this.fullDirectionX && rectTop + rectHeight > size) {
-      this.contentTranslateY = -((rectTop + rectHeight - size) / this.scale)
+      this.translateY = -((rectTop + rectHeight - size) / this.scale)
       activeRectStyle.top = `${size - rectHeight}px`
     }
     // 判断缩略图能否左右移动
     if (!this.fullDirectionX && rectLeft + rectWidth > size) {
-      this.contentTranslateX = -((rectLeft + rectWidth - size) / this.scale)
+      this.translateX = -((rectLeft + rectWidth - size) / this.scale)
       activeRectStyle.left = `${size - rectWidth}px`
     }
-    this.contentElement.style.transform = `scale(${this.scale}) translate(${this.contentTranslateX}px, ${this.contentTranslateY}px)`
+    this.contentElement.style.transform = `scale(${this.scale}) translate(${this.translateX}px, ${this.translateY}px)`
   }
 
   createSkeleton() {
@@ -169,40 +167,40 @@ export default class thumbnailScroll {
     const rectLeft = getValuePx(rectStyle.left)
     const rectTop = getValuePx(rectStyle.top)
     this.boundaryData = {
-      left: rectLeft === 0 && this.contentTranslateX < 0 && this.rectMoveData.left,
-      right: Math.abs(rectLeft - (size - rectWidth)) < 1 && this.contentTranslateX * this.scale > size - contentWidth && this.rectMoveData.right,
-      top: rectTop === 0 && this.contentTranslateY < 0 && this.rectMoveData.top,
-      bottom: Math.abs(rectTop - (size - rectHeight)) < 1 && this.contentTranslateY * this.scale > size - contentHeight && this.rectMoveData.bottom
+      left: rectLeft === 0 && this.translateX < 0 && this.rectMoveData.left,
+      right: Math.abs(rectLeft - (size - rectWidth)) < 1 && this.translateX * this.scale > size - contentWidth && this.rectMoveData.right,
+      top: rectTop === 0 && this.translateY < 0 && this.rectMoveData.top,
+      bottom: Math.abs(rectTop - (size - rectHeight)) < 1 && this.translateY * this.scale > size - contentHeight && this.rectMoveData.bottom
     }
   }
 
   syncScroll() {
     const { left: rectLeft, top: rectTop } = getComputedStyle(this.activeRect)
-    this.realScrollLayer.scrollLeft = -this.contentTranslateX + getValuePx(rectLeft) / this.scale
-    this.realScrollLayer.scrollTop = -this.contentTranslateY + getValuePx(rectTop) / this.scale
+    this.realScrollLayer.scrollLeft = -this.translateX + getValuePx(rectLeft) / this.scale
+    this.realScrollLayer.scrollTop = -this.translateY + getValuePx(rectTop) / this.scale
   }
 
   // 偏移一定距离后是否会超出边界
   allowMove(direct, offsetValue) {
-    const { size } = this.option
+    const { width, height } = this.option
     const { width: contentWidth, height: contentHeight } = this.contentElement.getBoundingClientRect()
     // 往左偏移
     if (direct === 'left') {
       const maxLeft = (contentWidth - size) / this.scale
-      return -this.contentTranslateX + offsetValue < maxLeft
+      return -this.translateX + offsetValue < maxLeft
     }
     // 往右偏移
     if (direct === 'right') {
-      return -this.contentTranslateX > offsetValue
+      return -this.translateX > offsetValue
     }
     // 往上偏移
     if (direct === 'up') {
       const maxHeight = (contentHeight - size) / this.scale
-      return -this.contentTranslateY + offsetValue < maxHeight
+      return -this.translateY + offsetValue < maxHeight
     }
     // 往下偏移
     if (direct === 'down') {
-      return -this.contentTranslateY > offsetValue
+      return -this.translateY > offsetValue
     }
   }
 
@@ -215,37 +213,37 @@ export default class thumbnailScroll {
       if (this.boundaryScrollInterval) return
       this.boundaryScrollInterval = setInterval(() => {
         if (this.boundaryData.left) {
-          this.contentTranslateX = this.contentTranslateX + 3 / this.scale
-          if (this.contentTranslateX > 0) {
-            this.contentTranslateX = 0
+          this.translateX = this.translateX + 3 / this.scale
+          if (this.translateX > 0) {
+            this.translateX = 0
             this.boundaryData.left = false
           }
         }
         if (this.boundaryData.top) {
-          this.contentTranslateY = this.contentTranslateY + 3 / this.scale
-          if (this.contentTranslateY > 0) {
-            this.contentTranslateY = 0
+          this.translateY = this.translateY + 3 / this.scale
+          if (this.translateY > 0) {
+            this.translateY = 0
             this.boundaryData.top = false
           }
         }
         if (this.boundaryData.right) {
-          this.contentTranslateX = this.contentTranslateX - 3 / this.scale
+          this.translateX = this.translateX - 3 / this.scale
           const maxLeft = -(contentWidth - size) / this.scale
-          if (this.contentTranslateX < maxLeft) {
-            this.contentTranslateX = Math.round(maxLeft)
+          if (this.translateX < maxLeft) {
+            this.translateX = Math.round(maxLeft)
             this.boundaryData.right = false
           }
         }
         if (this.boundaryData.bottom) {
-          this.contentTranslateY = this.contentTranslateY - 3 / this.scale
+          this.translateY = this.translateY - 3 / this.scale
           const maxTop = -(contentHeight - size) / this.scale
-          if (this.contentTranslateY < maxTop) {
-            this.contentTranslateY = Math.round(maxTop)
+          if (this.translateY < maxTop) {
+            this.translateY = Math.round(maxTop)
             this.boundaryData.bottom = false
           }
         }
         !touchBoundary() && this.stopBoundaryScroll()
-        contentElement.style.transform = `scale(${this.scale}) translate(${this.contentTranslateX}px, ${this.contentTranslateY}px)`
+        contentElement.style.transform = `scale(${this.scale}) translate(${this.translateX}px, ${this.translateY}px)`
       }, 20)
     } else {
       this.stopBoundaryScroll()
@@ -332,43 +330,43 @@ export default class thumbnailScroll {
       // 往右滚动
       if (offsetScrollLeft > 0) {
         if (this.allowMove('left', offsetScrollLeft)) {
-          this.contentTranslateX = this.contentTranslateX - offsetScrollLeft
+          this.translateX = this.translateX - offsetScrollLeft
         } else {
-          const surplusX = maxLeft + this.contentTranslateX
-          this.contentTranslateX = this.contentTranslateX - surplusX
+          const surplusX = maxLeft + this.translateX
+          this.translateX = this.translateX - surplusX
           activeRect.style.left = `${getValuePx(activeRect.style.left) + (offsetScrollLeft - surplusX) * this.scale}px`
         }
       }
       // 内容区往右偏移
       if (offsetScrollLeft < 0) {
         if (this.allowMove('right', Math.abs(offsetScrollLeft))) {
-          this.contentTranslateX = this.contentTranslateX - offsetScrollLeft
+          this.translateX = this.translateX - offsetScrollLeft
         } else {
-          activeRect.style.left = `${getValuePx(activeRect.style.left) + (offsetScrollLeft - this.contentTranslateX) * this.scale}px`
-          this.contentTranslateX = 0
+          activeRect.style.left = `${getValuePx(activeRect.style.left) + (offsetScrollLeft - this.translateX) * this.scale}px`
+          this.translateX = 0
         }
       }
       // 内容区向上偏移
       if (offsetScrollTop > 0) {
         if (this.allowMove('up', offsetScrollTop)) {
-          this.contentTranslateY = this.contentTranslateY - offsetScrollTop
+          this.translateY = this.translateY - offsetScrollTop
         } else {
-          const surplusY = maxHeight + this.contentTranslateY
-          this.contentTranslateY = this.contentTranslateY - surplusY
+          const surplusY = maxHeight + this.translateY
+          this.translateY = this.translateY - surplusY
           activeRect.style.top = `${getValuePx(activeRect.style.top) + (offsetScrollTop - surplusY) * this.scale}px`
         }
       }
       // 内容区向下偏移
       if (offsetScrollTop < 0) {
         if (this.allowMove('down', Math.abs(offsetScrollTop))) {
-          this.contentTranslateY = this.contentTranslateY - offsetScrollTop
+          this.translateY = this.translateY - offsetScrollTop
         } else {
-          activeRect.style.top = `${getValuePx(activeRect.style.top) + (offsetScrollTop - this.contentTranslateY) * this.scale}px`
-          this.contentTranslateY = 0
+          activeRect.style.top = `${getValuePx(activeRect.style.top) + (offsetScrollTop - this.translateY) * this.scale}px`
+          this.translateY = 0
         }
       }
 
-      contentElement.style.transform = `scale(${this.scale}) translate(${this.contentTranslateX}px, ${this.contentTranslateY}px)`
+      contentElement.style.transform = `scale(${this.scale}) translate(${this.translateX}px, ${this.translateY}px)`
       oldScrollLeft = realScrollLayer.scrollLeft
       oldScrollTop = realScrollLayer.scrollTop
     })
@@ -393,15 +391,15 @@ export default class thumbnailScroll {
       let allowMoveX = false
       if (offsetX > 0 && this.allowMove('right', offsetX)) allowMoveX = true
       if (offsetX < 0 && this.allowMove('left', Math.abs(offsetX))) allowMoveX = true
-      if (allowMoveX) this.contentTranslateX = this.contentTranslateX + offsetX / this.scale
+      if (allowMoveX) this.translateX = this.translateX + offsetX / this.scale
 
       const offsetY = e.clientY - oldClientY
       let allowMoveY = false
       if (offsetY > 0 && this.allowMove('down', offsetY)) allowMoveY = true
       if (offsetY < 0 && this.allowMove('up', Math.abs(offsetY))) allowMoveY = true
-      if (allowMoveY) this.contentTranslateY = this.contentTranslateY + offsetY / this.scale
+      if (allowMoveY) this.translateY = this.translateY + offsetY / this.scale
 
-      contentElement.style.transform = `scale(${this.scale}) translate(${this.contentTranslateX}px, ${this.contentTranslateY}px)`
+      contentElement.style.transform = `scale(${this.scale}) translate(${this.translateX}px, ${this.translateY}px)`
       oldClientX = e.clientX
       oldClientY = e.clientY
     })
@@ -416,6 +414,8 @@ export default class thumbnailScroll {
   }
 
   setEvent() {
+    this.translateX = 0
+    this.translateY = 0
     this.scrollLock = false
     this.setRectEvent()
     this.setDragMoveEvent()
