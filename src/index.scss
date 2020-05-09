@@ -2,11 +2,9 @@
   overflow: hidden;
   cursor: grab;
   user-select: none;
-
   * {
     box-sizing: border-box;
   }
-
   .thumbnail-scroll-rect {
     position: absolute;
     left: 0;
@@ -15,16 +13,13 @@
     border: solid 1px red;
     cursor: move;
   }
-
   .thumbnail-scroll-content {
     pointer-events: none;
     transform-origin: 0 0 0;
-
     &.is-skeleton {
       position: relative;
     }
   }
-
   .thumbnail-skeleton-item {
     position: absolute;
     background-color: #ffddaa;
