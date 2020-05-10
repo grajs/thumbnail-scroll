@@ -41,7 +41,7 @@ export default class thumbnailScroll {
 
     // 自动设置比例
     if (!scale) {
-      const {width: targetWidth, height: targetHeight} = target.getBoundingClientRect()
+      const { width: targetWidth, height: targetHeight } = target.getBoundingClientRect()
       if (!/^width|height$/.test(fullOrientation)) {
         fullOrientation = targetWidth > targetHeight ? 'height' : 'width'
       }
@@ -66,6 +66,22 @@ export default class thumbnailScroll {
     parentElement && parentElement.appendChild(root)
     this.root = root
 
+    const { left: rootLeft, top: rootTop } = root.getBoundingClientRect()
+    this.rootPositionData = {
+      width: root.clientWidth,
+      height: root.clientHeight,
+      left: rootLeft + root.clientLeft,
+      top: rootTop + root.clientTop
+    }
+    const {
+      left: computedRootLeft,
+      top: computedRootTop,
+      height: rootHeight,
+      width: rootWidth
+    } = this.rootPositionData
+    this.rootPositionData.right = computedRootLeft + rootWidth
+    this.rootPositionData.bottom = computedRootTop + rootHeight
+
     if (mode === 'skeleton') {
       if (typeof skeletonClassName !== 'string') {
         throw '"option.skeletonClassName" should be a String'
@@ -73,8 +89,6 @@ export default class thumbnailScroll {
       }
       this.createSkeleton()
     }
-
-    this.contentPositionData = this.content.getBoundingClientRect()
   }
 
   createRect() {
@@ -247,18 +261,18 @@ export default class thumbnailScroll {
     const rect = this.rect
     const { style: rectStyle } = rect
     const { left: rectLeft, right: rectRight, top: rectTop, bottom: rectBottom } = rect.getBoundingClientRect()
-    const { left: contentLeft, right: contentRight, top: contentTop, bottom: contentBottom } = this.contentPositionData
+    const { left: rootLeft, right: rootRight, top: rootTop, bottom: rootBottom } = this.rootPositionData
     if (x) {
       let offsetX = x
       if (x > 0) {
-        const surplusRight = contentRight - rectRight
+        const surplusRight = rootRight - rectRight
         // 右侧距离不够的情况尝试移动内容区
         if (surplusRight < x) {
           offsetX = surplusRight
         }
       }
       if (x < 0) {
-        const surplusLeft = rectLeft - contentLeft
+        const surplusLeft = rectLeft - rootLeft
         // 左侧距离不够的情况尝试移动内容区
         if (surplusLeft < Math.abs(x)) {
           offsetX = surplusLeft
@@ -269,15 +283,14 @@ export default class thumbnailScroll {
     if (y) {
       let offsetY = y
       if (y > 0) {
-        const surplusBottom = contentBottom - rectBottom
-        console.log(this.contentPositionData.bottom, this.content.getBoundingClientRect(), rectBottom)
+        const surplusBottom = rootBottom - rectBottom
         // 下方距离不够的情况尝试移动内容区
         if (surplusBottom < y) {
           offsetY = surplusBottom
         }
       }
       if (y < 0) {
-        const surplusTop = rectTop - contentTop
+        const surplusTop = rectTop - rootTop
         // 上方距离不够的情况尝试移动内容区
         if (surplusTop < Math.abs(y)) {
           offsetY = surplusTop

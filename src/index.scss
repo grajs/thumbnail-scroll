@@ -2,6 +2,7 @@
   overflow: hidden;
   cursor: grab;
   user-select: none;
+  box-sizing: content-box;
   * {
     box-sizing: border-box;
   }
