@@ -52,6 +52,7 @@ export default class thumbnailScroll {
     this.createElement()
     this.createRect()
     this.setEvent()
+    this.syncRect(0, 'init')
   }
 
   createElement() {
@@ -218,7 +219,28 @@ export default class thumbnailScroll {
         this.scrollXLock = false
         return
       }
-      const offsetX = (oldScrollLeft - scrollXLayer.scrollLeft) * scale
+      this.syncRect(oldScrollLeft, 'x')
+      oldScrollLeft = scrollXLayer.scrollLeft
+    })
+    scrollYElement.addEventListener('scroll', () => {
+      if (this.scrollYLock) {
+        oldScrollTop = scrollYLayer.scrollTop
+        this.scrollYLock = false
+        return
+      }
+      this.syncRect(oldScrollTop, 'y')
+      oldScrollTop = scrollYLayer.scrollTop
+    })
+  }
+
+  syncRect(oldScrollValue, type) {
+    const { width, height, scale, scrollXLayer, scrollYLayer } = this.option
+    const content = this.content
+    const { width: contentWidth, height: contentHeight } = content.getBoundingClientRect()
+    const { style: rectStyle } = this.rect
+
+    if (/x|init/.test(type)) {
+      const offsetX = (scrollXLayer.scrollLeft - oldScrollValue) * scale
       if (this.allowMove(offsetX)) {
         this.translateX = this.translateX - offsetX
       } else {
@@ -227,16 +249,9 @@ export default class thumbnailScroll {
         this.translateX = maxTranslateX
         rectStyle.left = `${getValueOfPx(rectStyle.left) + offsetX - surplusX}px`
       }
-      oldScrollLeft = scrollXLayer.scrollLeft
-      content.style.transform = `translate(${this.translateX}px, ${this.translateY}px)`
-    })
-    scrollYElement.addEventListener('scroll', () => {
-      if (this.scrollYLock) {
-        oldScrollTop = scrollYLayer.scrollTop
-        this.scrollYLock = false
-        return
-      }
-      const offsetY = (oldScrollTop - scrollYLayer.scrollTop) * scale
+    }
+    if (/y|init/.test(type)) {
+      const offsetY = (oldScrollValue - scrollYLayer.scrollTop) * scale
       if (this.allowMove(offsetY, true)) {
         this.translateY = this.translateY + offsetY
       } else {
@@ -250,34 +265,9 @@ export default class thumbnailScroll {
           rectStyle.top = `${scrollYLayer.scrollTop * scale}px`
         }
       }
-      oldScrollTop = scrollYLayer.scrollTop
-      content.style.transform = `translate(${this.translateX}px, ${this.translateY}px)`
-    })
-  }
+    }
 
-  syncRect() {
-    const { size, scale } = this.option
-    const realScrollLayer = this.option.scrollXLayer
-    const rectWidth = realScrollLayer.clientWidth * scale
-    const rectHeight = realScrollLayer.clientHeight * scale
-    const rectLeft = realScrollLayer.scrollLeft * scale
-    const rectTop = realScrollLayer.scrollTop * scale
-    const { style } = this.rect
-    style.width = `${rectWidth}px`
-    style.height = `${rectHeight}px`
-    style.left = `${rectLeft}px`
-    style.top = `${rectTop}px`
-    // 判断缩略图能否上下移动
-    if (this.fullDirectionX && rectTop + rectHeight > size) {
-      this.translateY = -((rectTop + rectHeight - size) / scale)
-      style.top = `${size - rectHeight}px`
-    }
-    // 判断缩略图能否左右移动
-    if (!this.fullDirectionX && rectLeft + rectWidth > size) {
-      this.translateX = -((rectLeft + rectWidth - size) / scale)
-      style.left = `${size - rectWidth}px`
-    }
-    this.contentElement.style.transform = `scale(${scale}) translate(${this.translateX}px, ${this.translateY}px)`
+    content.style.transform = `translate(${this.translateX}px, ${this.translateY}px)`
   }
 
   createSkeletonItem() {
@@ -364,7 +354,7 @@ export default class thumbnailScroll {
     }
   }
 
-  move(x, y) {
+  move(x = 0, y = 0) {
     const rect = this.rect
     const { style: rectStyle } = rect
     const { left: rectLeft, right: rectRight, top: rectTop, bottom: rectBottom } = rect.getBoundingClientRect()
@@ -374,16 +364,12 @@ export default class thumbnailScroll {
       if (x > 0) {
         const surplusRight = rootRight - rectRight
         // 右侧距离不够的情况尝试移动内容区
-        if (surplusRight < x) {
-          offsetX = surplusRight
-        }
+        if (surplusRight < x) offsetX = surplusRight
       }
       if (x < 0) {
         const surplusLeft = rectLeft - rootLeft
         // 左侧距离不够的情况尝试移动内容区
-        if (surplusLeft < Math.abs(x)) {
-          offsetX = surplusLeft
-        }
+        if (surplusLeft < Math.abs(x)) offsetX = surplusLeft
       }
       if (x) rectStyle.left = `${getValueOfPx(rectStyle.left) + offsetX}px`
     }
@@ -392,16 +378,12 @@ export default class thumbnailScroll {
       if (y > 0) {
         const surplusBottom = rootBottom - rectBottom
         // 下方距离不够的情况尝试移动内容区
-        if (surplusBottom < y) {
-          offsetY = surplusBottom
-        }
+        if (surplusBottom < y) offsetY = surplusBottom
       }
       if (y < 0) {
         const surplusTop = rectTop - rootTop
         // 上方距离不够的情况尝试移动内容区
-        if (surplusTop < Math.abs(y)) {
-          offsetY = surplusTop
-        }
+        if (surplusTop < Math.abs(y)) offsetY = surplusTop
       }
       if (y) rectStyle.top = `${getValueOfPx(rectStyle.top) + offsetY}px`
     }
