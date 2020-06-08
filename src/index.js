@@ -50,9 +50,8 @@ export default class thumbnailScroll {
 
   init() {
     this.createElement()
-    this.createRect()
     this.setEvent()
-    this.syncRect(0, 'init')
+    this.syncContent(0, 'init')
   }
 
   createElement() {
@@ -78,6 +77,8 @@ export default class thumbnailScroll {
       if (typeof skeletonClassName !== 'string') return console.log('"option.skeletonClassName" should be a String')
       this.createSkeleton()
     }
+
+    this.createRect()
   }
 
   createSkeleton() {
@@ -115,8 +116,10 @@ export default class thumbnailScroll {
     this.setRectDrag()
     this.setContainerDrag()
     this.setScrollEvent()
+    this.setContentClick()
   }
 
+  // 将矩形和内容偏移量映射到滚动条
   syncScroll(lockScroll) {
     const { scale, scrollXLayer, scrollYLayer } = this.option
     const { left: rectLeft, top: rectTop } = this.rect.style
@@ -132,18 +135,63 @@ export default class thumbnailScroll {
     }
   }
 
+  // 将滚动条位置映射到内容区和矩形
+  syncContent(oldScrollValue, type) {
+    const { width, height, scale, scrollXLayer, scrollYLayer } = this.option
+    const content = this.content
+    const { width: contentWidth, height: contentHeight } = content.getBoundingClientRect()
+    const { style: rectStyle } = this.rect
+
+    if (/x|init/.test(type)) {
+      const offsetX = (scrollXLayer.scrollLeft - oldScrollValue) * scale
+      if (this.contentAllowMove(offsetX)) {
+        this.translateX = this.translateX - offsetX
+      } else {
+        const maxTranslateX = contentWidth - width
+        const surplusX = maxTranslateX + this.translateX
+        this.translateX = maxTranslateX
+        rectStyle.left = `${getValueOfPx(rectStyle.left) + offsetX - surplusX}px`
+      }
+    }
+    if (/y|init/.test(type)) {
+      const offsetY = (oldScrollValue - scrollYLayer.scrollTop) * scale
+      if (this.contentAllowMove(offsetY, true)) {
+        this.translateY = this.translateY + offsetY
+      } else {
+        const maxTranslateY = contentHeight - height
+        // 向上滚动
+        if (offsetY < 0) {
+          this.translateY = -maxTranslateY
+          rectStyle.top = `${scrollYLayer.scrollTop * scale - maxTranslateY}px`
+        } else {
+          this.translateY = 0
+          rectStyle.top = `${scrollYLayer.scrollTop * scale}px`
+        }
+      }
+    }
+
+    content.style.transform = `translate(${this.translateX}px, ${this.translateY}px)`
+  }
+
+  // 内容偏移一定距离后是否会超出边界
+  contentAllowMove(offset, isVertical) {
+    const { width, height } = this.option
+    const { width: contentWidth, height: contentHeight } = this.content.getBoundingClientRect()
+    if (isVertical) {
+      const nextTranslateY = this.translateY + offset
+      return nextTranslateY <= 0 && nextTranslateY >= height - contentHeight
+    } else {
+      const nextTranslateX = this.translateX + offset
+      return nextTranslateX <= 0 && nextTranslateX >= width - contentWidth
+    }
+  }
+
   // 拖动矩形
   setRectDrag() {
     const rect = this.rect
     let dragging = false
     let oldClientX = 0
     let oldClientY = 0
-    this.rectMoveData = {
-      left: false,
-      right: false,
-      top: false,
-      bottom: false
-    }
     rect.addEventListener('mousedown', ({ button, clientX, clientY }) => {
       if (button !== 0) return
       oldClientX = clientX
@@ -152,7 +200,7 @@ export default class thumbnailScroll {
     })
     this.root.addEventListener('mousemove', ({ clientX, clientY }) => {
       if (!dragging) return
-      this.move(clientX - oldClientX, clientY - oldClientY)
+      this.rectMove(clientX - oldClientX, clientY - oldClientY)
       oldClientX = clientX
       oldClientY = clientY
     })
@@ -163,20 +211,28 @@ export default class thumbnailScroll {
     })
   }
 
-  // 偏移一定距离后是否会超出边界
-  allowMove(offset, isVertical) {
-    const { width, height } = this.option
-    const { width: contentWidth, height: contentHeight } = this.content.getBoundingClientRect()
-    if (isVertical) {
-      const nextTranslateY = this.translateY + offset
-      return nextTranslateY <= 0 && nextTranslateY >= -(contentHeight - height)
-    } else {
-      const nextTranslateX = this.translateX + offset
-      return nextTranslateX <= 0 && nextTranslateX >= -(contentWidth - width)
-    }
+  // 点击非矩形区定位
+  setContentClick() {
+    // 点击事件不允许有偏移行为，否则视为拖拽内容区
+    const root = this.root
+    const oldClient = { x: 0, y: 0 }
+    root.addEventListener('mousedown', e => {
+      if (e.target === this.rect) return
+      oldClient.x = e.clientX
+      oldClient.y = e.clientY
+    })
+    root.addEventListener('mouseup', e => {
+      if (e.target === this.rect) return
+      if (e.clientX !== oldClient.x || e.clientY !== oldClient.y) return
+      const { left: rectLeft, top: rectTop, width: rectWidth, height: rectHeight } = this.rect.getBoundingClientRect()
+      const offsetX = e.clientX - rectLeft - rectWidth / 2
+      const offsetY = e.clientY - rectTop - rectHeight / 2
+      this.rectMove(offsetX, offsetY)
+      this.syncScroll(true)
+    })
   }
 
-  // 拖拽非活动块
+  // 拖拽非矩形区内容滚动
   setContainerDrag() {
     let rootDragging = false
     let oldClientX = 0
@@ -191,8 +247,8 @@ export default class thumbnailScroll {
       if (!rootDragging || button) return
       const offsetX = clientX - oldClientX
       const offsetY = clientY - oldClientY
-      if (this.allowMove(offsetX)) this.translateX = this.translateX + offsetX
-      if (this.allowMove(offsetY, true)) this.translateY = this.translateY + offsetY
+      if (this.contentAllowMove(offsetX)) this.translateX = this.translateX + offsetX
+      if (this.contentAllowMove(offsetY, true)) this.translateY = this.translateY + offsetY
       this.content.style.transform = `translate(${this.translateX}px, ${this.translateY}px)`
       oldClientX = clientX
       oldClientY = clientY
@@ -219,7 +275,7 @@ export default class thumbnailScroll {
         this.scrollXLock = false
         return
       }
-      this.syncRect(oldScrollLeft, 'x')
+      this.syncContent(oldScrollLeft, 'x')
       oldScrollLeft = scrollXLayer.scrollLeft
     })
     scrollYElement.addEventListener('scroll', () => {
@@ -228,46 +284,9 @@ export default class thumbnailScroll {
         this.scrollYLock = false
         return
       }
-      this.syncRect(oldScrollTop, 'y')
+      this.syncContent(oldScrollTop, 'y')
       oldScrollTop = scrollYLayer.scrollTop
     })
-  }
-
-  syncRect(oldScrollValue, type) {
-    const { width, height, scale, scrollXLayer, scrollYLayer } = this.option
-    const content = this.content
-    const { width: contentWidth, height: contentHeight } = content.getBoundingClientRect()
-    const { style: rectStyle } = this.rect
-
-    if (/x|init/.test(type)) {
-      const offsetX = (scrollXLayer.scrollLeft - oldScrollValue) * scale
-      if (this.allowMove(offsetX)) {
-        this.translateX = this.translateX - offsetX
-      } else {
-        const maxTranslateX = contentWidth - width
-        const surplusX = maxTranslateX + this.translateX
-        this.translateX = maxTranslateX
-        rectStyle.left = `${getValueOfPx(rectStyle.left) + offsetX - surplusX}px`
-      }
-    }
-    if (/y|init/.test(type)) {
-      const offsetY = (oldScrollValue - scrollYLayer.scrollTop) * scale
-      if (this.allowMove(offsetY, true)) {
-        this.translateY = this.translateY + offsetY
-      } else {
-        const maxTranslateY = contentHeight - height
-        // 向上滚动
-        if (offsetY < 0) {
-          this.translateY = -maxTranslateY
-          rectStyle.top = `${scrollYLayer.scrollTop * scale - maxTranslateY}px`
-        } else {
-          this.translateY = 0
-          rectStyle.top = `${scrollYLayer.scrollTop * scale}px`
-        }
-      }
-    }
-
-    content.style.transform = `translate(${this.translateX}px, ${this.translateY}px)`
   }
 
   createSkeletonItem() {
@@ -286,75 +305,7 @@ export default class thumbnailScroll {
     })
   }
 
-  stopBoundaryScroll() {
-    if (!this.boundaryScrollInterval) return
-    clearInterval(this.boundaryScrollInterval)
-    this.boundaryScrollInterval = null
-  }
-
-  setBoundaryData() {
-    const { size } = this.option
-    const rect = this.rect
-    const { width: contentWidth, height: contentHeight } = this.content.getBoundingClientRect()
-    const { width: rectWidth, height: rectHeight } = rect.getBoundingClientRect()
-    const rectStyle = getComputedStyle(rect)
-    const rectLeft = getValueOfPx(rectStyle.left)
-    const rectTop = getValueOfPx(rectStyle.top)
-    this.boundaryData = {
-      left: rectLeft === 0 && this.translateX < 0 && this.rectMoveData.left,
-      right: Math.abs(rectLeft - (size - rectWidth)) < 1 && this.translateX * scale > size - contentWidth && this.rectMoveData.right,
-      top: rectTop === 0 && this.translateY < 0 && this.rectMoveData.top,
-      bottom: Math.abs(rectTop - (size - rectHeight)) < 1 && this.translateY * scale > size - contentHeight && this.rectMoveData.bottom
-    }
-  }
-
-  boundaryScroll() {
-    const { size } = this.option
-    const { width: contentWidth, height: contentHeight } = this.content.getBoundingClientRect()
-    const content = this.content
-    const touchBoundary = () => this.boundaryData.left || this.boundaryData.right || this.boundaryData.top || this.boundaryData.bottom
-    if (touchBoundary) {
-      if (this.boundaryScrollInterval) return
-      this.boundaryScrollInterval = setInterval(() => {
-        if (this.boundaryData.left) {
-          this.translateX = this.translateX + 3 / scale
-          if (this.translateX > 0) {
-            this.translateX = 0
-            this.boundaryData.left = false
-          }
-        }
-        if (this.boundaryData.top) {
-          this.translateY = this.translateY + 3 / scale
-          if (this.translateY > 0) {
-            this.translateY = 0
-            this.boundaryData.top = false
-          }
-        }
-        if (this.boundaryData.right) {
-          this.translateX = this.translateX - 3 / scale
-          const maxLeft = -(contentWidth - size) / scale
-          if (this.translateX < maxLeft) {
-            this.translateX = Math.round(maxLeft)
-            this.boundaryData.right = false
-          }
-        }
-        if (this.boundaryData.bottom) {
-          this.translateY = this.translateY - 3 / scale
-          const maxTop = -(contentHeight - size) / scale
-          if (this.translateY < maxTop) {
-            this.translateY = Math.round(maxTop)
-            this.boundaryData.bottom = false
-          }
-        }
-        !touchBoundary() && this.stopBoundaryScroll()
-        contentElement.style.transform = `scale(${scale}) translate(${this.translateX}px, ${this.translateY}px)`
-      }, 20)
-    } else {
-      this.stopBoundaryScroll()
-    }
-  }
-
-  move(x = 0, y = 0) {
+  rectMove(x = 0, y = 0) {
     const rect = this.rect
     const { style: rectStyle } = rect
     const { left: rectLeft, right: rectRight, top: rectTop, bottom: rectBottom } = rect.getBoundingClientRect()
@@ -369,7 +320,7 @@ export default class thumbnailScroll {
       if (x < 0) {
         const surplusLeft = rectLeft - rootLeft
         // 左侧距离不够的情况尝试移动内容区
-        if (surplusLeft < Math.abs(x)) offsetX = surplusLeft
+        if (surplusLeft < Math.abs(x)) offsetX = -surplusLeft
       }
       if (x) rectStyle.left = `${getValueOfPx(rectStyle.left) + offsetX}px`
     }
@@ -383,7 +334,7 @@ export default class thumbnailScroll {
       if (y < 0) {
         const surplusTop = rectTop - rootTop
         // 上方距离不够的情况尝试移动内容区
-        if (surplusTop < Math.abs(y)) offsetY = surplusTop
+        if (surplusTop < Math.abs(y)) offsetY = -surplusTop
       }
       if (y) rectStyle.top = `${getValueOfPx(rectStyle.top) + offsetY}px`
     }
