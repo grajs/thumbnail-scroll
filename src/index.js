@@ -108,7 +108,6 @@ export default class thumbnailScroll {
   }
 
   setEvent() {
-    this.boundaryScrollInterval = null
     this.translateX = 0
     this.translateY = 0
     this.scrollXLock = false
@@ -186,12 +185,25 @@ export default class thumbnailScroll {
     }
   }
 
+  // todo
+  boundaryScroll(offsetX, offsetY) {
+
+  }
+
   // 拖动矩形
   setRectDrag() {
     const rect = this.rect
     let dragging = false
     let oldClientX = 0
     let oldClientY = 0
+    // todo
+    this.boundaryScrollData = {
+      left: false,
+      right: false,
+      top: false,
+      bottom: false
+    }
+    this.boundaryScrollInterval = 0
     rect.addEventListener('mousedown', ({ button, clientX, clientY }) => {
       if (button !== 0) return
       oldClientX = clientX
@@ -200,7 +212,15 @@ export default class thumbnailScroll {
     })
     this.root.addEventListener('mousemove', ({ clientX, clientY }) => {
       if (!dragging) return
-      this.rectMove(clientX - oldClientX, clientY - oldClientY)
+      const offsetX = clientX - oldClientX
+      const offsetY = clientY - oldClientY
+      this.rectMove(offsetX, offsetY)
+      // todo
+      if (offsetX > 0) {
+        this.boundaryScrollData.right = true
+        this.boundaryScrollData.left = true
+      }
+      this.boundaryScroll()
       oldClientX = clientX
       oldClientY = clientY
     })
@@ -314,12 +334,12 @@ export default class thumbnailScroll {
       let offsetX = x
       if (x > 0) {
         const surplusRight = rootRight - rectRight
-        // 右侧距离不够的情况尝试移动内容区
+        // 右侧距离不够的情况
         if (surplusRight < x) offsetX = surplusRight
       }
       if (x < 0) {
         const surplusLeft = rectLeft - rootLeft
-        // 左侧距离不够的情况尝试移动内容区
+        // 左侧距离不够的情况
         if (surplusLeft < Math.abs(x)) offsetX = -surplusLeft
       }
       if (x) rectStyle.left = `${getValueOfPx(rectStyle.left) + offsetX}px`
@@ -328,12 +348,12 @@ export default class thumbnailScroll {
       let offsetY = y
       if (y > 0) {
         const surplusBottom = rootBottom - rectBottom
-        // 下方距离不够的情况尝试移动内容区
+        // 下方距离不够的情况
         if (surplusBottom < y) offsetY = surplusBottom
       }
       if (y < 0) {
         const surplusTop = rectTop - rootTop
-        // 上方距离不够的情况尝试移动内容区
+        // 上方距离不够的情况
         if (surplusTop < Math.abs(y)) offsetY = -surplusTop
       }
       if (y) rectStyle.top = `${getValueOfPx(rectStyle.top) + offsetY}px`
