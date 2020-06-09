@@ -185,6 +185,21 @@ export default class thumbnailScroll {
     }
   }
 
+  rectAllowMove(offset, isVertical) {
+    const { left: rectLeft, right: rectRight, top: rectTop, bottom: rectBottom } = this.rect.getBoundingClientRect()
+    const { left: rootLeft, right: rootRight, top: rootTop, bottom: rootBottom } = this.rootPositionData
+    // 向下/右移动
+    if (offset > 0) {
+      const surplusValue = isVertical ? rootBottom - rectBottom : rootRight - rectRight
+      return surplusValue >= offset
+    }
+    // 向上/左移动
+    if (offset < 0) {
+      const surplusValue = isVertical ? rootTop - rectTop : rootLeft - rectLeft
+      return surplusValue <= offset
+    }
+  }
+
   // todo
   boundaryScroll(offsetX, offsetY) {
 
@@ -196,13 +211,7 @@ export default class thumbnailScroll {
     let dragging = false
     let oldClientX = 0
     let oldClientY = 0
-    // todo
-    this.boundaryScrollData = {
-      left: false,
-      right: false,
-      top: false,
-      bottom: false
-    }
+    this.boundaryScrollData = { x: '', y: '' }
     this.boundaryScrollInterval = 0
     rect.addEventListener('mousedown', ({ button, clientX, clientY }) => {
       if (button !== 0) return
@@ -215,11 +224,10 @@ export default class thumbnailScroll {
       const offsetX = clientX - oldClientX
       const offsetY = clientY - oldClientY
       this.rectMove(offsetX, offsetY)
-      // todo
-      if (offsetX > 0) {
-        this.boundaryScrollData.right = true
-        this.boundaryScrollData.left = true
-      }
+      if (offsetX > 0) this.boundaryScrollData.x = 'right'
+      if (offsetX < 0) this.boundaryScrollData.x = 'left'
+      if (offsetY > 0) this.boundaryScrollData.y = 'down'
+      if (offsetY < 0) this.boundaryScrollData.x = 'up'
       this.boundaryScroll()
       oldClientX = clientX
       oldClientY = clientY
@@ -327,36 +335,23 @@ export default class thumbnailScroll {
 
   rectMove(x = 0, y = 0) {
     const rect = this.rect
-    const { style: rectStyle } = rect
-    const { left: rectLeft, right: rectRight, top: rectTop, bottom: rectBottom } = rect.getBoundingClientRect()
-    const { left: rootLeft, right: rootRight, top: rootTop, bottom: rootBottom } = this.rootPositionData
+    const { style: rectStyle } = this.rect
+    const { width: rectWidth, height: rectHeight } = rect.getBoundingClientRect()
+    const { width: rootWidth, height: rootHeight } = this.rootPositionData
     if (x) {
-      let offsetX = x
-      if (x > 0) {
-        const surplusRight = rootRight - rectRight
-        // 右侧距离不够的情况
-        if (surplusRight < x) offsetX = surplusRight
+      if (this.rectAllowMove(x)) {
+        rectStyle.left = `${getValueOfPx(rectStyle.left) + x}px`
+      } else {
+        rectStyle.left = `${x > 0 ? rootWidth - rectWidth : 0}px`
       }
-      if (x < 0) {
-        const surplusLeft = rectLeft - rootLeft
-        // 左侧距离不够的情况
-        if (surplusLeft < Math.abs(x)) offsetX = -surplusLeft
-      }
-      if (x) rectStyle.left = `${getValueOfPx(rectStyle.left) + offsetX}px`
     }
     if (y) {
-      let offsetY = y
-      if (y > 0) {
-        const surplusBottom = rootBottom - rectBottom
-        // 下方距离不够的情况
-        if (surplusBottom < y) offsetY = surplusBottom
+      console.log(y, this.rectAllowMove(y, true))
+      if (this.rectAllowMove(y, true)) {
+        rectStyle.top = `${getValueOfPx(rectStyle.top) + y}px`
+      } else {
+        rectStyle.top = `${y > 0 ? rootHeight - rectHeight : 0}px`
       }
-      if (y < 0) {
-        const surplusTop = rectTop - rootTop
-        // 上方距离不够的情况
-        if (surplusTop < Math.abs(y)) offsetY = -surplusTop
-      }
-      if (y) rectStyle.top = `${getValueOfPx(rectStyle.top) + offsetY}px`
     }
   }
 }
