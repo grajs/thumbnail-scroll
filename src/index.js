@@ -101,8 +101,6 @@ export default class thumbnailScroll {
     const { style } = rect
     style.width = `${scrollXLayer.clientWidth * scale}px`
     style.height = `${scrollYLayer.clientHeight * scale}px`
-    style.left = `${scrollXLayer.scrollLeft * scale}px`
-    style.top = `${scrollYLayer.scrollTop * scale}px`
     this.rect = rect
     this.root.appendChild(rect)
   }
@@ -289,10 +287,7 @@ export default class thumbnailScroll {
   }
 
   setScrollEvent() {
-    const { width, height, scale, scrollXLayer, scrollYLayer } = this.option
-    const content = this.content
-    const { style: rectStyle } = this.rect
-    const { width: contentWidth, height: contentHeight } = content.getBoundingClientRect()
+    const { scrollXLayer, scrollYLayer } = this.option
     const scrollXElement = scrollXLayer === document.documentElement ? window : scrollXLayer
     const scrollYElement = scrollYLayer === document.documentElement ? window : scrollYLayer
     let oldScrollLeft = scrollXLayer.scrollLeft
@@ -346,7 +341,6 @@ export default class thumbnailScroll {
       }
     }
     if (y) {
-      console.log(y, this.rectAllowMove(y, true))
       if (this.rectAllowMove(y, true)) {
         rectStyle.top = `${getValueOfPx(rectStyle.top) + y}px`
       } else {
