@@ -16,7 +16,8 @@ export default class thumbnailScroll {
       mode: 'dom',
       width: 200,
       height: 200,
-      skeletonClassName: ''
+      skeletonClassName: '',
+      boundaryScrollSpeed: 8
     }, optionData)
 
     let {
@@ -198,9 +199,49 @@ export default class thumbnailScroll {
     }
   }
 
-  // todo
-  boundaryScroll(offsetX, offsetY) {
-
+  boundaryScroll() {
+    const { boundaryScrollSpeed } = this.option
+    if (this.boundaryScrollData.x || this.boundaryScrollData.y) {
+      if (!this.boundaryScrollInterval) {
+        this.boundaryScrollInterval = setInterval(() => {
+          const { x: dataX, y: dataY } = this.boundaryScrollData
+          if (dataX === 'left') {
+            if (this.contentAllowMove(1)) {
+              this.translateX++
+            } else {
+              this.boundaryScrollData.x = ''
+            }
+          }
+          if (dataX === 'right') {
+            if (this.contentAllowMove(-1)) {
+              this.translateX--
+            } else {
+              this.boundaryScrollData.x = ''
+            }
+          }
+          if (dataY === 'down') {
+            if (this.contentAllowMove(-1, true)) {
+              this.translateY--
+            } else {
+              this.boundaryScrollData.y = ''
+            }
+          }
+          if (dataY === 'up') {
+            if (this.contentAllowMove(1, true)) {
+              this.translateY++
+            } else {
+              this.boundaryScrollData.y = ''
+            }
+          }
+          this.content.style.transform = `translate(${this.translateX}px, ${this.translateY}px)`
+        }, boundaryScrollSpeed)
+      }
+    } else {
+      if (this.boundaryScrollInterval) {
+        clearInterval(this.boundaryScrollInterval)
+        this.boundaryScrollInterval = 0
+      }
+    }
   }
 
   // 拖动矩形
@@ -210,7 +251,6 @@ export default class thumbnailScroll {
     let oldClientX = 0
     let oldClientY = 0
     this.boundaryScrollData = { x: '', y: '' }
-    this.boundaryScrollInterval = 0
     rect.addEventListener('mousedown', ({ button, clientX, clientY }) => {
       if (button !== 0) return
       oldClientX = clientX
@@ -222,10 +262,35 @@ export default class thumbnailScroll {
       const offsetX = clientX - oldClientX
       const offsetY = clientY - oldClientY
       this.rectMove(offsetX, offsetY)
-      if (offsetX > 0) this.boundaryScrollData.x = 'right'
-      if (offsetX < 0) this.boundaryScrollData.x = 'left'
-      if (offsetY > 0) this.boundaryScrollData.y = 'down'
-      if (offsetY < 0) this.boundaryScrollData.x = 'up'
+      const { x: dataX, y: dataY } = this.boundaryScrollData
+      if (offsetX > 0) {
+        if (!this.rectAllowMove(offsetX)) {
+          this.boundaryScrollData.x = 'right'
+        } else if (dataX === 'left') {
+          this.boundaryScrollData.x = ''
+        }
+      }
+      if (offsetX < 0) {
+        if (!this.rectAllowMove(offsetX)) {
+          this.boundaryScrollData.x = 'left'
+        } else if (dataX === 'right') {
+          this.boundaryScrollData.x = ''
+        }
+      }
+      if (offsetY > 0) {
+        if (!this.rectAllowMove(offsetY, true)) {
+          this.boundaryScrollData.y = 'down'
+        } else if (dataY === 'up') {
+          this.boundaryScrollData.y = ''
+        }
+      }
+      if (offsetY < 0) {
+        if (!this.rectAllowMove(offsetY, true)) {
+          this.boundaryScrollData.y = 'up'
+        } else if (dataY === 'down') {
+          this.boundaryScrollData.y = ''
+        }
+      }
       this.boundaryScroll()
       oldClientX = clientX
       oldClientY = clientY
@@ -233,6 +298,8 @@ export default class thumbnailScroll {
     window.addEventListener('mouseup', () => {
       if (!dragging) return
       dragging = false
+      this.boundaryScrollData.x = ''
+      this.boundaryScrollData.y = ''
       this.syncScroll(true)
     })
   }
