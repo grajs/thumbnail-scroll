@@ -34,7 +34,7 @@ export default class thumbnailScroll {
 
     // 自动设置比例
     const scrollWidth = option.scrollXLayer.scrollWidth
-    const scrollHeight = option.scrollXLayer.scrollHeight
+    const scrollHeight = option.scrollYLayer.scrollHeight
     option.scale = scrollWidth > scrollHeight ? height / scrollHeight : width / scrollWidth
 
     this.option = option
