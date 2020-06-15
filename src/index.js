@@ -92,8 +92,10 @@ export default class thumbnailScroll {
     const rect = document.createElement('div')
     rect.classList.add('thumbnail-scroll-rect')
     const { style } = rect
-    style.width = `${scrollXLayer.clientWidth * scale}px`
-    style.height = `${scrollYLayer.clientHeight * scale}px`
+    const rectWidth = Math.min(scrollXLayer.clientWidth, scrollYLayer.clientWidth)
+    const rectHeight = Math.min(scrollXLayer.clientHeight, scrollYLayer.clientHeight)
+    style.width = `${rectWidth * scale}px`
+    style.height = `${rectHeight * scale}px`
     this.rect = rect
     this.root.appendChild(rect)
   }
