@@ -1,10 +1,9 @@
 import thumbnailScroll from '../index'
 
 const thumbnail = new thumbnailScroll({
-  target: document.querySelector('.target'),
   mode: 'skeleton',
   className: 'scroll',
-  skeletonClassName: 'target-item'
+  skeleton: { 'target-item': '#ffddaa' }
 })
 
 window.addEventListener('resize', () => thumbnail.refreshRect())

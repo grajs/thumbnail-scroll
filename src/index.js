@@ -15,7 +15,6 @@ export default class thumbnailScroll {
       mode: 'dom',
       width: 200,
       height: 200,
-      skeletonClassName: '',
       boundaryScrollSpeed: 8
     }, optionData)
 
@@ -47,7 +46,7 @@ export default class thumbnailScroll {
   }
 
   createElement() {
-    const { mode, skeletonClassName, width, height, parentElement, className } = this.option
+    const { mode, skeleton, width, height, parentElement, className } = this.option
     const root = document.createElement('div')
     root.classList.add('thumbnail-scroll', className || '')
     root.style.width = `${width}px`
@@ -66,7 +65,7 @@ export default class thumbnailScroll {
     }
 
     if (mode === 'skeleton') {
-      if (typeof skeletonClassName !== 'string') return console.log('"option.skeletonClassName" should be a String')
+      if (!skeleton instanceof Object) return console.log('"option.skeleton" should be a Object')
       this.createSkeleton()
     }
 
@@ -379,21 +378,24 @@ export default class thumbnailScroll {
   }
 
   createSkeletonItem() {
-    const { scrollXLayer, scrollYLayer, skeletonClassName, scale } = this.option
+    const { scrollXLayer, scrollYLayer, skeleton, scale } = this.option
     const commonParent = scrollXLayer.contains(scrollYLayer) ? scrollXLayer : scrollYLayer
     const { left: scrollXLayerLeft } = scrollXLayer.getBoundingClientRect()
     const { top: scrollYLayerTop } = scrollYLayer.getBoundingClientRect()
-    commonParent.querySelectorAll(`.${skeletonClassName}`).forEach(item => {
-      const { width: itemWidth, height: itemHeight, x: itemLeft, y: itemTop } = item.getBoundingClientRect()
-      const skeletonItem = document.createElement('div')
-      skeletonItem.classList.add('thumbnail-skeleton-item')
-      const skeletonItemStyle = skeletonItem.style
-      skeletonItemStyle.width = `${itemWidth * scale}px`
-      skeletonItemStyle.height = `${itemHeight * scale}px`
-      skeletonItemStyle.left = `${(itemLeft - scrollXLayerLeft) * scale}px`
-      skeletonItemStyle.top = `${(itemTop - scrollYLayerTop) * scale}px`
-      this.content.appendChild(skeletonItem)
-    })
+    for (const className in skeleton) {
+      commonParent.querySelectorAll(`.${className}`).forEach(item => {
+        const { width: itemWidth, height: itemHeight, x: itemLeft, y: itemTop } = item.getBoundingClientRect()
+        const skeletonItem = document.createElement('div')
+        skeletonItem.classList.add('thumbnail-skeleton-item')
+        const skeletonItemStyle = skeletonItem.style
+        skeletonItemStyle.width = `${itemWidth * scale}px`
+        skeletonItemStyle.height = `${itemHeight * scale}px`
+        skeletonItemStyle.left = `${(itemLeft - scrollXLayerLeft) * scale}px`
+        skeletonItemStyle.top = `${(itemTop - scrollYLayerTop) * scale}px`
+        skeletonItemStyle.backgroundColor = skeleton[className]
+        this.content.appendChild(skeletonItem)
+      })
+    }
   }
 
   rectMove(x = 0, y = 0) {
