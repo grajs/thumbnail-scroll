@@ -140,7 +140,7 @@ export default class thumbnailScroll {
         const maxTranslateX = contentWidth - width
         const surplusX = maxTranslateX + this.translateX
         this.translateX = maxTranslateX
-        rectStyle.left = `${getValueOfPx(rectStyle.left) + offsetX - surplusX}px`
+        rectStyle.left = `${getValueOfPx(rectStyle.left) - offsetX - surplusX}px`
       }
     }
     if (/y|init/.test(type)) {
