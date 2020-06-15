@@ -11,30 +11,23 @@ export default class thumbnailScroll {
   mergeOption(optionData) {
     const option = Object.assign({
       parentElement: document.body,
-      // skeleton || image
-      mode: 'dom',
-      width: 200,
-      height: 200,
+      mode: 'skeleton',
+      scale: 0.1,
       boundaryScrollSpeed: 8
     }, optionData)
 
-    let {
-      scrollLayer,
-      scrollXLayer,
-      scrollYLayer,
-      width,
-      height
-    } = option
+    const { scrollLayer, scrollXLayer, scrollYLayer, scale } = option
 
     // 确定滚动层
     if (scrollLayer) option.scrollXLayer = option.scrollYLayer = scrollLayer
     if (!scrollXLayer || scrollXLayer === window) option.scrollXLayer = document.documentElement
     if (!scrollYLayer || scrollYLayer === window) option.scrollYLayer = document.documentElement
 
-    // 自动设置比例
+    // 自动设置宽高
     const scrollWidth = option.scrollXLayer.scrollWidth
     const scrollHeight = option.scrollYLayer.scrollHeight
-    option.scale = scrollWidth > scrollHeight ? height / scrollHeight : width / scrollWidth
+    // 高度或宽度铺满
+    option.height = option.width = (scrollWidth > scrollHeight ? scrollHeight : scrollWidth) * scale
 
     this.option = option
   }
@@ -132,7 +125,7 @@ export default class thumbnailScroll {
     const content = this.content
     const { width: contentWidth, height: contentHeight } = content.getBoundingClientRect()
     const { style: rectStyle } = this.rect
-    
+
     const offsetX = (oldScrollValue - scrollXLayer.scrollLeft) * scale
     if (/x|init/.test(type) && offsetX) {
       if (this.contentAllowMove(offsetX)) {
