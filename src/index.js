@@ -131,20 +131,25 @@ export default class thumbnailScroll {
     const content = this.content
     const { width: contentWidth, height: contentHeight } = content.getBoundingClientRect()
     const { style: rectStyle } = this.rect
-
-    if (/x|init/.test(type)) {
-      const offsetX = (oldScrollValue - scrollXLayer.scrollLeft) * scale
+    
+    const offsetX = (oldScrollValue - scrollXLayer.scrollLeft) * scale
+    if (/x|init/.test(type) && offsetX) {
       if (this.contentAllowMove(offsetX)) {
         this.translateX = this.translateX + offsetX
       } else {
         const maxTranslateX = contentWidth - width
-        const surplusX = maxTranslateX + this.translateX
-        this.translateX = maxTranslateX
-        rectStyle.left = `${getValueOfPx(rectStyle.left) - offsetX - surplusX}px`
+        // 向右滚动
+        if (offsetX < 0) {
+          this.translateX = -maxTranslateX
+          rectStyle.left = `${scrollXLayer.scrollLeft * scale - maxTranslateX}px`
+        } else {
+          this.translateX = 0
+          rectStyle.left = `${scrollXLayer.scrollLeft * scale}px`
+        }
       }
     }
-    if (/y|init/.test(type)) {
-      const offsetY = (oldScrollValue - scrollYLayer.scrollTop) * scale
+    const offsetY = (oldScrollValue - scrollYLayer.scrollTop) * scale
+    if (/y|init/.test(type) && offsetY) {
       if (this.contentAllowMove(offsetY, true)) {
         this.translateY = this.translateY + offsetY
       } else {
