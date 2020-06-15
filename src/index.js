@@ -133,9 +133,9 @@ export default class thumbnailScroll {
     const { style: rectStyle } = this.rect
 
     if (/x|init/.test(type)) {
-      const offsetX = (scrollXLayer.scrollLeft - oldScrollValue) * scale
+      const offsetX = (oldScrollValue - scrollXLayer.scrollLeft) * scale
       if (this.contentAllowMove(offsetX)) {
-        this.translateX = this.translateX - offsetX
+        this.translateX = this.translateX + offsetX
       } else {
         const maxTranslateX = contentWidth - width
         const surplusX = maxTranslateX + this.translateX
