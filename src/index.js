@@ -375,7 +375,7 @@ export default class thumbnailScroll {
     const { scrollXLayer, scrollYLayer, skeletonClassName, scale } = this.option
     const commonParent = scrollXLayer.contains(scrollYLayer) ? scrollXLayer : scrollYLayer
     const { left: scrollXLayerLeft } = scrollXLayer.getBoundingClientRect()
-    const { left: scrollYLayerTop } = scrollYLayer.getBoundingClientRect()
+    const { top: scrollYLayerTop } = scrollYLayer.getBoundingClientRect()
     commonParent.querySelectorAll(`.${skeletonClassName}`).forEach(item => {
       const { width: itemWidth, height: itemHeight, x: itemLeft, y: itemTop } = item.getBoundingClientRect()
       const skeletonItem = document.createElement('div')
