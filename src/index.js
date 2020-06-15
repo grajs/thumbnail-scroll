@@ -4,7 +4,6 @@ const getValueOfPx = value => +value.replace(/px$/, '')
 
 export default class thumbnailScroll {
   constructor(option) {
-    if (!option.target || option.target.nodeType !== 1) return console.log('"option.target" should be a element')
     this.mergeOption(option)
     this.init()
   }
@@ -39,7 +38,6 @@ export default class thumbnailScroll {
     option.scale = scrollWidth > scrollHeight ? height / scrollHeight : width / scrollWidth
 
     this.option = option
-    this.target = option.target
   }
 
   init() {
