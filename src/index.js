@@ -21,13 +21,9 @@ export default class thumbnailScroll {
     }, optionData)
 
     let {
-      target,
       scrollLayer,
       scrollXLayer,
       scrollYLayer,
-      scale,
-      // 宽度或高度铺满
-      fullOrientation,
       width,
       height
     } = option
@@ -38,13 +34,10 @@ export default class thumbnailScroll {
     if (!scrollYLayer || scrollYLayer === window) option.scrollYLayer = document.documentElement
 
     // 自动设置比例
-    if (!scale) {
-      const { width: targetWidth, height: targetHeight } = target.getBoundingClientRect()
-      if (!/^width|height$/.test(fullOrientation)) {
-        fullOrientation = targetWidth > targetHeight ? 'height' : 'width'
-      }
-      option.scale = fullOrientation === 'width' ? width / targetWidth : height / targetHeight
-    }
+    const scrollWidth = option.scrollXLayer.scrollWidth
+    const scrollHeight = option.scrollXLayer.scrollHeight
+    option.scale = scrollWidth > scrollHeight ? height / scrollHeight : width / scrollWidth
+
     this.option = option
     this.target = option.target
   }
@@ -56,9 +49,9 @@ export default class thumbnailScroll {
   }
 
   createElement() {
-    const { mode, skeletonClassName, width, height, parentElement } = this.option
+    const { mode, skeletonClassName, width, height, parentElement, className } = this.option
     const root = document.createElement('div')
-    root.classList.add('thumbnail-scroll')
+    root.classList.add('thumbnail-scroll', className || '')
     root.style.width = `${width}px`
     root.style.height = `${height}px`
     parentElement && parentElement.appendChild(root)
@@ -83,12 +76,13 @@ export default class thumbnailScroll {
   }
 
   createSkeleton() {
-    const { scale } = this.option
-    const { width: targetWidth, height: targetHeight } = this.target.getBoundingClientRect()
+    const { scale, scrollXLayer, scrollYLayer } = this.option
+    const scrollWidth = scrollXLayer.scrollWidth
+    const scrollHeight = scrollYLayer.scrollHeight
     const content = document.createElement('div')
     const { style } = content
-    style.width = `${targetWidth * scale}px`
-    style.height = `${targetHeight * scale}px`
+    style.width = `${scrollWidth * scale}px`
+    style.height = `${scrollHeight * scale}px`
     content.classList.add('thumbnail-scroll-content', 'is-skeleton')
     this.root.appendChild(content)
     this.content = content
@@ -380,17 +374,19 @@ export default class thumbnailScroll {
   }
 
   createSkeletonItem() {
-    const { target, skeletonClassName, scale } = this.option
-    const { left: targetLeft, top: targetTop } = target.getBoundingClientRect()
-    target.querySelectorAll(`.${skeletonClassName}`).forEach(item => {
+    const { scrollXLayer, scrollYLayer, skeletonClassName, scale } = this.option
+    const commonParent = scrollXLayer.contains(scrollYLayer) ? scrollXLayer : scrollYLayer
+    const { left: scrollXLayerLeft } = scrollXLayer.getBoundingClientRect()
+    const { left: scrollYLayerTop } = scrollYLayer.getBoundingClientRect()
+    commonParent.querySelectorAll(`.${skeletonClassName}`).forEach(item => {
       const { width: itemWidth, height: itemHeight, x: itemLeft, y: itemTop } = item.getBoundingClientRect()
       const skeletonItem = document.createElement('div')
       skeletonItem.classList.add('thumbnail-skeleton-item')
       const skeletonItemStyle = skeletonItem.style
       skeletonItemStyle.width = `${itemWidth * scale}px`
       skeletonItemStyle.height = `${itemHeight * scale}px`
-      skeletonItemStyle.left = `${(itemLeft - targetLeft) * scale}px`
-      skeletonItemStyle.top = `${(itemTop - targetTop) * scale}px`
+      skeletonItemStyle.left = `${(itemLeft - scrollXLayerLeft) * scale}px`
+      skeletonItemStyle.top = `${(itemTop - scrollYLayerTop) * scale}px`
       this.content.appendChild(skeletonItem)
     })
   }
