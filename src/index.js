@@ -34,6 +34,7 @@ export default class thumbnailScroll {
 
   init() {
     this.createElement()
+    this.windowEventList = []
     this.setEvent()
     this.syncContent(0, 'init')
   }
@@ -243,7 +244,7 @@ export default class thumbnailScroll {
     let oldClientY = 0
     this.boundaryScrollData = { x: '', y: '' }
     rect.addEventListener('mousedown', ({ button, clientX, clientY }) => {
-      if (button !== 0) return
+      if (button) return
       oldClientX = clientX
       oldClientY = clientY
       dragging = true
@@ -286,13 +287,15 @@ export default class thumbnailScroll {
       oldClientX = clientX
       oldClientY = clientY
     })
-    window.addEventListener('mouseup', () => {
+    const mouseupEvent = () => {
       if (!dragging) return
       dragging = false
       this.boundaryScrollData.x = ''
       this.boundaryScrollData.y = ''
       this.syncScroll(true)
-    })
+    }
+    this.windowEventList.push({ key: 'mouseup', event: mouseupEvent })
+    window.addEventListener('mouseup', mouseupEvent)
   }
 
   // 点击非矩形区定位
@@ -301,12 +304,12 @@ export default class thumbnailScroll {
     const root = this.root
     const oldClient = { x: 0, y: 0 }
     root.addEventListener('mousedown', e => {
-      if (e.target === this.rect) return
+      if (e.target === this.rect || e.button) return
       oldClient.x = e.clientX
       oldClient.y = e.clientY
     })
     root.addEventListener('mouseup', e => {
-      if (e.target === this.rect) return
+      if (e.target === this.rect || e.button) return
       if (e.clientX !== oldClient.x || e.clientY !== oldClient.y) return
       const { left: rectLeft, top: rectTop, width: rectWidth, height: rectHeight } = this.rect.getBoundingClientRect()
       const offsetX = e.clientX - rectLeft - rectWidth / 2
@@ -337,11 +340,13 @@ export default class thumbnailScroll {
       oldClientX = clientX
       oldClientY = clientY
     })
-    window.addEventListener('mouseup', ({ button }) => {
+    const mouseupEvent = ({ button }) => {
       if (!rootDragging || button) return
       rootDragging = false
       this.syncScroll(true)
-    })
+    }
+    this.windowEventList.push({ key: 'mouseup', event: mouseupEvent })
+    window.addEventListener('mouseup', mouseupEvent)
   }
 
   setScrollEvent() {
@@ -410,5 +415,12 @@ export default class thumbnailScroll {
         rectStyle.top = `${y > 0 ? rootHeight - rectHeight : 0}px`
       }
     }
+  }
+
+  destroy() {
+    this.root.parentElement.removeChild(this.root)
+    this.windowEventList.forEach(({ key, event }) => {
+      window.removeEventListener(key, event)
+    })
   }
 }
