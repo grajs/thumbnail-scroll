@@ -4,19 +4,31 @@ const getValueOfPx = value => +value.replace(/px$/, '')
 
 export default class thumbnailScroll {
   constructor(option) {
+    if(!this.checkOption(option)) return
     this.mergeOption(option)
     this.init()
+  }
+
+  checkOption(option) {
+    const { mode, skeleton, size, scale } = option
+    if (size) {
+      if (size <= 0) return console.warn('"option.size" must be greater than 0')
+    } else {
+      if (!scale) return console.warn('"option.size" or "option.scale" is required and must be greater than 0')
+      if (scale <= 0) return console.warn('"option.scale" must be greater than 0')
+    }
+    if (mode === 'skeleton' && !(skeleton instanceof Object)) return console.warn('"option.skeleton" should be a Object')
+    return true
   }
 
   mergeOption(optionData) {
     const option = Object.assign({
       parentElement: document.body,
       mode: 'skeleton',
-      scale: 0.1,
       boundaryScrollSpeed: 8
     }, optionData)
 
-    const { scrollLayer, scrollXLayer, scrollYLayer, scale } = option
+    const { scrollLayer, scrollXLayer, scrollYLayer, scale, size } = option
 
     // 确定滚动层
     if (scrollLayer) option.scrollXLayer = option.scrollYLayer = scrollLayer
@@ -27,7 +39,12 @@ export default class thumbnailScroll {
     const scrollWidth = option.scrollXLayer.scrollWidth
     const scrollHeight = option.scrollYLayer.scrollHeight
     // 高度或宽度铺满
-    option.height = option.width = (scrollWidth > scrollHeight ? scrollHeight : scrollWidth) * scale
+    if (size) {
+      option.height = option.width = size
+      option.scale = size / (scrollWidth > scrollHeight ? scrollHeight : scrollWidth)
+    } else {
+      option.height = option.width = (scrollWidth > scrollHeight ? scrollHeight : scrollWidth) * scale
+    }
 
     this.option = option
   }
@@ -58,10 +75,7 @@ export default class thumbnailScroll {
       bottom: rootTop + root.clientTop + root.clientHeight
     }
 
-    if (mode === 'skeleton') {
-      if (!skeleton instanceof Object) return console.log('"option.skeleton" should be a Object')
-      this.createSkeleton()
-    }
+    mode === 'skeleton' && this.createSkeleton()
 
     this.createRect()
   }
@@ -418,9 +432,10 @@ export default class thumbnailScroll {
   }
 
   destroy() {
-    this.root.parentElement.removeChild(this.root)
+    this.root && this.root.parentElement.removeChild(this.root)
     this.windowEventList.forEach(({ key, event }) => {
       window.removeEventListener(key, event)
     })
+    this.windowEventList = []
   }
 }

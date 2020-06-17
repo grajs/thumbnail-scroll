@@ -3,7 +3,7 @@ import thumbnailScroll from '../index'
 const thumbnail = new thumbnailScroll({
   mode: 'skeleton',
   className: 'scroll',
-  scale: 0.05,
+  size: 200,
   skeleton: { 'target-item': '#ffddaa' }
 })
 
