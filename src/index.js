@@ -4,7 +4,7 @@ const getValueOfPx = value => +value.replace(/px$/, '')
 
 export default class thumbnailScroll {
   constructor(option) {
-    if(!this.checkOption(option)) return
+    if (!this.checkOption(option)) return
     this.mergeOption(option)
     this.init()
   }
@@ -402,8 +402,8 @@ export default class thumbnailScroll {
         const skeletonItemStyle = skeletonItem.style
         skeletonItemStyle.width = `${itemWidth * scale}px`
         skeletonItemStyle.height = `${itemHeight * scale}px`
-        skeletonItemStyle.left = `${(itemLeft - scrollXLayerLeft) * scale}px`
-        skeletonItemStyle.top = `${(itemTop - scrollYLayerTop) * scale}px`
+        skeletonItemStyle.left = `${(itemLeft - scrollXLayerLeft + scrollXLayer.scrollLeft) * scale}px`
+        skeletonItemStyle.top = `${(itemTop - scrollYLayerTop + scrollYLayer.scrollTop) * scale}px`
         skeletonItemStyle.backgroundColor = skeleton[className]
         this.content.appendChild(skeletonItem)
       })
@@ -432,7 +432,10 @@ export default class thumbnailScroll {
   }
 
   destroy() {
-    this.root && this.root.parentElement.removeChild(this.root)
+    if (this.root) {
+      this.root.parentElement && this.root.parentElement.removeChild(this.root)
+      this.root = null
+    }
     this.windowEventList.forEach(({ key, event }) => {
       window.removeEventListener(key, event)
     })
