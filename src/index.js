@@ -4,12 +4,12 @@ const getValueOfPx = value => +value.replace(/px$/, '')
 
 export default class thumbnailScroll {
   constructor(option) {
-    if (!this.checkOption(option)) return
+    if (!this.optionValidate(option)) return
     this.mergeOption(option)
     this.init()
   }
 
-  checkOption(option) {
+  optionValidate(option) {
     const { mode, skeleton, size, scale } = option
     if (size) {
       if (size <= 0) return console.warn('"option.size" must be greater than 0')
@@ -28,25 +28,27 @@ export default class thumbnailScroll {
       boundaryScrollSpeed: 8
     }, optionData)
 
-    const { scrollLayer, scrollXLayer, scrollYLayer, scale, size } = option
-
+    const { scrollLayer, scrollXLayer, scrollYLayer } = option
     // 确定滚动层
     if (scrollLayer) option.scrollXLayer = option.scrollYLayer = scrollLayer
     if (!scrollXLayer || scrollXLayer === window) option.scrollXLayer = document.documentElement
     if (!scrollYLayer || scrollYLayer === window) option.scrollYLayer = document.documentElement
+    this.option = option
+    this.computedOption()
+  }
 
+  computedOption() {
+    const { scale, size, scrollXLayer, scrollYLayer } = this.option
     // 自动设置宽高
-    const scrollWidth = option.scrollXLayer.scrollWidth
-    const scrollHeight = option.scrollYLayer.scrollHeight
+    const scrollWidth = scrollXLayer.scrollWidth
+    const scrollHeight = scrollYLayer.scrollHeight
     // 高度或宽度铺满
     if (size) {
-      option.height = option.width = size
-      option.scale = size / (scrollWidth > scrollHeight ? scrollHeight : scrollWidth)
+      this.option.height = this.option.width = size
+      this.option.scale = size / (scrollWidth > scrollHeight ? scrollHeight : scrollWidth)
     } else {
-      option.height = option.width = (scrollWidth > scrollHeight ? scrollHeight : scrollWidth) * scale
+      this.option.height = this.option.width = (scrollWidth > scrollHeight ? scrollHeight : scrollWidth) * scale
     }
-
-    this.option = option
   }
 
   init() {
@@ -57,14 +59,28 @@ export default class thumbnailScroll {
   }
 
   createElement() {
-    const { mode, skeleton, width, height, parentElement, className } = this.option
+    const { mode } = this.option
+    this.createRoot()
+    this.createContainer()
+    mode === 'skeleton' && this.createSkeleton()
+    this.createRect()
+  }
+
+  createRoot() {
+    const { parentElement, className } = this.option
     const root = document.createElement('div')
     root.classList.add('thumbnail-scroll', className || '')
-    root.style.width = `${width}px`
-    root.style.height = `${height}px`
     parentElement && parentElement.appendChild(root)
     this.root = root
+    this.setRootStyle()
+  }
 
+  // 性能考虑，提前计算好，后面移动会多次获取
+  setRootStyle() {
+    const { width, height } = this.option
+    const root = this.root
+    root.style.width = `${width}px`
+    root.style.height = `${height}px`
     const { left: rootLeft, top: rootTop } = root.getBoundingClientRect()
     this.rootPositionData = {
       width: root.clientWidth,
@@ -74,37 +90,62 @@ export default class thumbnailScroll {
       right: rootLeft + root.clientLeft + root.clientWidth,
       bottom: rootTop + root.clientTop + root.clientHeight
     }
-
-    mode === 'skeleton' && this.createSkeleton()
-
-    this.createRect()
   }
 
-  createSkeleton() {
+  createContainer() {
+    const container = document.createElement('div')
+    container.classList.add('thumbnail-scroll-container', 'is-skeleton')
+    this.root.appendChild(container)
+    this.container = container
+    this.setContainerStyle()
+  }
+
+  setContainerStyle() {
     const { scale, scrollXLayer, scrollYLayer } = this.option
     const scrollWidth = scrollXLayer.scrollWidth
     const scrollHeight = scrollYLayer.scrollHeight
-    const content = document.createElement('div')
-    const { style } = content
+    const { style } = this.container
     style.width = `${scrollWidth * scale}px`
     style.height = `${scrollHeight * scale}px`
-    content.classList.add('thumbnail-scroll-content', 'is-skeleton')
-    this.root.appendChild(content)
-    this.content = content
-    this.createSkeletonItem()
+  }
+
+  createSkeleton() {
+    this.container.innerHTML = ''
+    const { scrollXLayer, scrollYLayer, skeleton, scale } = this.option
+    const commonParent = scrollXLayer.contains(scrollYLayer) ? scrollXLayer : scrollYLayer
+    const { left: scrollXLayerLeft } = scrollXLayer.getBoundingClientRect()
+    const { top: scrollYLayerTop } = scrollYLayer.getBoundingClientRect()
+    for (const className in skeleton) {
+      commonParent.querySelectorAll(`.${className}`).forEach(item => {
+        const { width: itemWidth, height: itemHeight, x: itemLeft, y: itemTop } = item.getBoundingClientRect()
+        const skeletonItem = document.createElement('div')
+        skeletonItem.classList.add('thumbnail-skeleton-item')
+        const skeletonItemStyle = skeletonItem.style
+        skeletonItemStyle.width = `${itemWidth * scale}px`
+        skeletonItemStyle.height = `${itemHeight * scale}px`
+        skeletonItemStyle.left = `${(itemLeft - scrollXLayerLeft + scrollXLayer.scrollLeft) * scale}px`
+        skeletonItemStyle.top = `${(itemTop - scrollYLayerTop + scrollYLayer.scrollTop) * scale}px`
+        skeletonItemStyle.backgroundColor = skeleton[className]
+        this.container.appendChild(skeletonItem)
+      })
+    }
   }
 
   createRect() {
-    const { scrollXLayer, scrollYLayer, scale } = this.option
     const rect = document.createElement('div')
     rect.classList.add('thumbnail-scroll-rect')
-    const { style } = rect
+    this.root.appendChild(rect)
+    this.rect = rect
+    this.setRectStyle()
+  }
+
+  setRectStyle() {
+    const { scrollXLayer, scrollYLayer, scale } = this.option
+    const { style } = this.rect
     const rectWidth = Math.min(scrollXLayer.clientWidth, scrollYLayer.clientWidth)
     const rectHeight = Math.min(scrollXLayer.clientHeight, scrollYLayer.clientHeight)
     style.width = `${rectWidth * scale}px`
     style.height = `${rectHeight * scale}px`
-    this.rect = rect
-    this.root.appendChild(rect)
   }
 
   setEvent() {
@@ -137,8 +178,8 @@ export default class thumbnailScroll {
   // 将滚动条位置映射到内容区和矩形
   syncContent(oldScrollValue, type) {
     const { width, height, scale, scrollXLayer, scrollYLayer } = this.option
-    const content = this.content
-    const { width: contentWidth, height: contentHeight } = content.getBoundingClientRect()
+    const container = this.container
+    const { width: containerWidth, height: containerHeight } = container.getBoundingClientRect()
     const { style: rectStyle } = this.rect
 
     const offsetX = (oldScrollValue - scrollXLayer.scrollLeft) * scale
@@ -146,7 +187,7 @@ export default class thumbnailScroll {
       if (this.contentAllowMove(offsetX)) {
         this.translateX = this.translateX + offsetX
       } else {
-        const maxTranslateX = contentWidth - width
+        const maxTranslateX = containerWidth - width
         // 向右滚动
         if (offsetX < 0) {
           this.translateX = -maxTranslateX
@@ -162,7 +203,7 @@ export default class thumbnailScroll {
       if (this.contentAllowMove(offsetY, true)) {
         this.translateY = this.translateY + offsetY
       } else {
-        const maxTranslateY = contentHeight - height
+        const maxTranslateY = containerHeight - height
         // 向上滚动
         if (offsetY < 0) {
           this.translateY = -maxTranslateY
@@ -174,19 +215,19 @@ export default class thumbnailScroll {
       }
     }
 
-    content.style.transform = `translate(${this.translateX}px, ${this.translateY}px)`
+    container.style.transform = `translate(${this.translateX}px, ${this.translateY}px)`
   }
 
   // 内容偏移一定距离后是否会超出边界
   contentAllowMove(offset, isVertical) {
     const { width, height } = this.option
-    const { width: contentWidth, height: contentHeight } = this.content.getBoundingClientRect()
+    const { width: containerWidth, height: containerHeight } = this.container.getBoundingClientRect()
     if (isVertical) {
       const nextTranslateY = this.translateY + offset
-      return nextTranslateY <= 0 && nextTranslateY >= height - contentHeight
+      return nextTranslateY <= 0 && nextTranslateY >= height - containerHeight
     } else {
       const nextTranslateX = this.translateX + offset
-      return nextTranslateX <= 0 && nextTranslateX >= width - contentWidth
+      return nextTranslateX <= 0 && nextTranslateX >= width - containerWidth
     }
   }
 
@@ -239,7 +280,7 @@ export default class thumbnailScroll {
               this.boundaryScrollData.y = ''
             }
           }
-          this.content.style.transform = `translate(${this.translateX}px, ${this.translateY}px)`
+          this.container.style.transform = `translate(${this.translateX}px, ${this.translateY}px)`
         }, boundaryScrollSpeed)
       }
     } else {
@@ -350,7 +391,7 @@ export default class thumbnailScroll {
       const offsetY = clientY - oldClientY
       if (this.contentAllowMove(offsetX)) this.translateX = this.translateX + offsetX
       if (this.contentAllowMove(offsetY, true)) this.translateY = this.translateY + offsetY
-      this.content.style.transform = `translate(${this.translateX}px, ${this.translateY}px)`
+      this.container.style.transform = `translate(${this.translateX}px, ${this.translateY}px)`
       oldClientX = clientX
       oldClientY = clientY
     })
@@ -389,46 +430,34 @@ export default class thumbnailScroll {
     })
   }
 
-  createSkeletonItem() {
-    const { scrollXLayer, scrollYLayer, skeleton, scale } = this.option
-    const commonParent = scrollXLayer.contains(scrollYLayer) ? scrollXLayer : scrollYLayer
-    const { left: scrollXLayerLeft } = scrollXLayer.getBoundingClientRect()
-    const { top: scrollYLayerTop } = scrollYLayer.getBoundingClientRect()
-    for (const className in skeleton) {
-      commonParent.querySelectorAll(`.${className}`).forEach(item => {
-        const { width: itemWidth, height: itemHeight, x: itemLeft, y: itemTop } = item.getBoundingClientRect()
-        const skeletonItem = document.createElement('div')
-        skeletonItem.classList.add('thumbnail-skeleton-item')
-        const skeletonItemStyle = skeletonItem.style
-        skeletonItemStyle.width = `${itemWidth * scale}px`
-        skeletonItemStyle.height = `${itemHeight * scale}px`
-        skeletonItemStyle.left = `${(itemLeft - scrollXLayerLeft + scrollXLayer.scrollLeft) * scale}px`
-        skeletonItemStyle.top = `${(itemTop - scrollYLayerTop + scrollYLayer.scrollTop) * scale}px`
-        skeletonItemStyle.backgroundColor = skeleton[className]
-        this.content.appendChild(skeletonItem)
-      })
-    }
-  }
-
-  rectMove(x = 0, y = 0) {
+  rectMove(offsetX, offsetY) {
     const rect = this.rect
     const { style: rectStyle } = this.rect
     const { width: rectWidth, height: rectHeight } = rect.getBoundingClientRect()
     const { width: rootWidth, height: rootHeight } = this.rootPositionData
-    if (x) {
-      if (this.rectAllowMove(x)) {
-        rectStyle.left = `${getValueOfPx(rectStyle.left) + x}px`
+    if (offsetX) {
+      if (this.rectAllowMove(offsetX)) {
+        rectStyle.left = `${getValueOfPx(rectStyle.left) + offsetX}px`
       } else {
-        rectStyle.left = `${x > 0 ? rootWidth - rectWidth : 0}px`
+        rectStyle.left = `${offsetX > 0 ? rootWidth - rectWidth : 0}px`
       }
     }
-    if (y) {
-      if (this.rectAllowMove(y, true)) {
-        rectStyle.top = `${getValueOfPx(rectStyle.top) + y}px`
+    if (offsetY) {
+      if (this.rectAllowMove(offsetY, true)) {
+        rectStyle.top = `${getValueOfPx(rectStyle.top) + offsetY}px`
       } else {
-        rectStyle.top = `${y > 0 ? rootHeight - rectHeight : 0}px`
+        rectStyle.top = `${offsetY > 0 ? rootHeight - rectHeight : 0}px`
       }
     }
+  }
+
+  reRender() {
+    this.computedOption()
+    this.setRootStyle()
+    this.setContainerStyle()
+    this.createSkeleton()
+    this.setRectStyle()
+    this.syncContent(0, 'init')
   }
 
   destroy() {

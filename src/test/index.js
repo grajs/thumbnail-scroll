@@ -7,4 +7,4 @@ const thumbnail = new thumbnailScroll({
   skeleton: { 'target-item': '#ffddaa' }
 })
 
-window.addEventListener('resize', () => thumbnail.refreshRect())
+window.addEventListener('resize', () => thumbnail.reRender())
