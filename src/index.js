@@ -1,6 +1,7 @@
 import './index.scss'
 
 const getValueOfPx = value => +value.replace(/px$/, '')
+const isHtmlElement = target => /HTML/.test(Object.prototype.toString.call(target))
 
 export default class thumbnailScroll {
   constructor(option) {
@@ -10,7 +11,15 @@ export default class thumbnailScroll {
   }
 
   optionValidate(option) {
-    const { mode, skeleton, size, scale } = option
+    const { scrollLayer, parentElement, mode, skeleton, size, scale } = option
+    if (scrollLayer) {
+      const warnInfo = '"option.scrollLayer" should be a HtmlElement or { x: HtmlElement, y: HtmlElement}'
+      if (typeof scrollLayer !== 'object') return console.warn(warnInfo)
+      if (!isHtmlElement(scrollLayer)) {
+        if (!isHtmlElement(scrollLayer.x) || !isHtmlElement(scrollLayer.y)) return console.warn(warnInfo)
+      }
+    }
+    if (parentElement && !isHtmlElement(parentElement)) return console.warn('"option.parentElement" should be a HtmlElement')
     if (size) {
       if (size <= 0) return console.warn('"option.size" must be greater than 0')
     } else {
@@ -24,15 +33,20 @@ export default class thumbnailScroll {
   mergeOption(optionData) {
     const option = Object.assign({
       parentElement: document.body,
+      scrollLayer: document.documentElement,
       mode: 'skeleton',
       boundaryScrollSpeed: 8
     }, optionData)
 
-    const { scrollLayer, scrollXLayer, scrollYLayer } = option
     // 确定滚动层
-    if (scrollLayer) option.scrollXLayer = option.scrollYLayer = scrollLayer
-    if (!scrollXLayer || scrollXLayer === window) option.scrollXLayer = document.documentElement
-    if (!scrollYLayer || scrollYLayer === window) option.scrollYLayer = document.documentElement
+    const { scrollLayer } = option
+    if (isHtmlElement(scrollLayer)) {
+      option.scrollXLayer = option.scrollYLayer = scrollLayer
+    } else {
+      option.scrollXLayer = scrollLayer.x
+      option.scrollYLayer = scrollLayer.y
+    }
+
     this.option = option
     this.computedOption()
   }
