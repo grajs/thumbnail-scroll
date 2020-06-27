@@ -9,7 +9,7 @@ module.exports = {
   },
   output: {
     path: resolve(__dirname, './dist'),
-    library: 'thumbnailScroll',
+    library: 'WebThumbnail',
     libraryExport: 'default',
     libraryTarget: 'umd'
   },

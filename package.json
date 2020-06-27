@@ -1,5 +1,5 @@
 {
-  "name": "thumbnail-scroll",
+  "name": "web-thumbnail",
   "version": "0.0.1",
   "description": "",
   "main": "src/dist",
@@ -9,7 +9,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/grajs/thumbnail-scroll.git"
+    "url": "git+https://github.com/grajs/web-thumbnail.git"
   },
   "keywords": [],
   "author": "liujianhua",
@@ -17,7 +17,7 @@
   "bugs": {
     "url": "https://github.com/grajs/treechartjs/issues"
   },
-  "homepage": "https://github.com/grajs/thumbnail-scroll#readme",
+  "homepage": "https://github.com/grajs/web-thumbnail#readme",
   "devDependencies": {
     "@babel/core": "^7.6.4",
     "@babel/preset-env": "^7.6.3",

@@ -1,4 +1,4 @@
-.thumbnail-scroll {
+.web-thumbnail {
   overflow: hidden;
   cursor: grab;
   user-select: none;
@@ -6,7 +6,7 @@
   * {
     box-sizing: border-box;
   }
-  .thumbnail-scroll-rect {
+  .web-thumbnail-rect {
     position: absolute;
     left: 0;
     top: 0;
@@ -14,7 +14,7 @@
     border: solid 1px red;
     cursor: move;
   }
-  .thumbnail-scroll-container {
+  .web-thumbnail-container {
     pointer-events: none;
     transform-origin: 0 0 0;
     &.is-skeleton {

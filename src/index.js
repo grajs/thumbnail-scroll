@@ -3,7 +3,7 @@ import './index.scss'
 const getValueOfPx = value => +value.replace(/px$/, '')
 const isHtmlElement = target => /HTML/.test(Object.prototype.toString.call(target))
 
-export default class thumbnailScroll {
+export default class WebThumbnail {
   constructor(option) {
     if (!this.optionValidate(option)) return
     this.mergeOption(option)
@@ -11,7 +11,7 @@ export default class thumbnailScroll {
   }
 
   optionValidate(option) {
-    const { scrollLayer, parentElement, mode, skeleton, size, scale } = option
+    const { scrollLayer, parentElement, mode, customImage, skeleton, size, scale } = option
     if (scrollLayer) {
       const warnInfo = '"option.scrollLayer" should be a HtmlElement or { x: HtmlElement, y: HtmlElement}'
       if (typeof scrollLayer !== 'object') return console.warn(warnInfo)
@@ -27,6 +27,7 @@ export default class thumbnailScroll {
       if (scale <= 0) return console.warn('"option.scale" must be greater than 0')
     }
     if (mode === 'skeleton' && !(skeleton instanceof Object)) return console.warn('"option.skeleton" should be a Object')
+    if (mode === 'custom' && !isHtmlElement(customImage)) return console.warn('"option.customImage" should be a HtmlElement')
     return true
   }
 
@@ -73,17 +74,18 @@ export default class thumbnailScroll {
   }
 
   createElement() {
-    const { mode } = this.option
+    const { mode, customImage } = this.option
     this.createRoot()
     this.createContainer()
     mode === 'skeleton' && this.createSkeleton()
+    mode === 'image' && this.insertImage(customImage)
     this.createRect()
   }
 
   createRoot() {
     const { parentElement, className } = this.option
     const root = document.createElement('div')
-    root.classList.add('thumbnail-scroll', className || '')
+    root.classList.add('web-thumbnail', className || '')
     parentElement && parentElement.appendChild(root)
     this.root = root
     this.setRootStyle()
@@ -108,7 +110,7 @@ export default class thumbnailScroll {
 
   createContainer() {
     const container = document.createElement('div')
-    container.classList.add('thumbnail-scroll-container', 'is-skeleton')
+    container.classList.add('web-thumbnail-container', 'is-skeleton')
     this.root.appendChild(container)
     this.container = container
     this.setContainerStyle()
@@ -145,9 +147,17 @@ export default class thumbnailScroll {
     }
   }
 
+  insertImage(customImage) {
+    this.container.innerHTML = ''
+    const { style } = customImage
+    style.width = '100%'
+    style.height = '100%'
+    this.container.appendChild(customImage)
+  }
+
   createRect() {
     const rect = document.createElement('div')
-    rect.classList.add('thumbnail-scroll-rect')
+    rect.classList.add('web-thumbnail-rect')
     this.root.appendChild(rect)
     this.rect = rect
     this.setRectStyle()
@@ -465,11 +475,13 @@ export default class thumbnailScroll {
     }
   }
 
-  reRender() {
+  reRender(customImage) {
+    const { mode } = this.option
     this.computedOption()
     this.setRootStyle()
     this.setContainerStyle()
-    this.createSkeleton()
+    mode === 'skeleton' && this.createSkeleton()
+    mode === 'image' && this.insertImage(customImage)
     this.setRectStyle()
     this.syncContent(0, 'init')
   }
