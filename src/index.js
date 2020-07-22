@@ -133,7 +133,7 @@ export default class WebThumbnail {
     const { top: scrollYLayerTop } = scrollYLayer.getBoundingClientRect()
     for (const className in skeleton) {
       commonParent.querySelectorAll(`.${className}`).forEach(item => {
-        const { width: itemWidth, height: itemHeight, x: itemLeft, y: itemTop } = item.getBoundingClientRect()
+        const { width: itemWidth, height: itemHeight, left: itemLeft, top: itemTop } = item.getBoundingClientRect()
         const skeletonItem = document.createElement('div')
         skeletonItem.classList.add('thumbnail-skeleton-item')
         const skeletonItemStyle = skeletonItem.style
